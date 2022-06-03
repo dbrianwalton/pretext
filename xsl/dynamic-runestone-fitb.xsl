@@ -30,10 +30,10 @@
 </xsl:template>
 
 <xsl:template name="quote-string">
-  <xsl:param name="string" />
-  <xsl:text>"</xsl:text>
-  <xsl:value-of select="$string" />
-  <xsl:text>"</xsl:text>
+    <xsl:param name="string" />
+    <xsl:text>"</xsl:text>
+    <xsl:value-of select="$string" />
+    <xsl:text>"</xsl:text>
 </xsl:template>
 
 <xsl:template name="escape-quote-string">
@@ -77,8 +77,8 @@
                     <xsl:text>,&#xa;"blankNames": {</xsl:text>
                     <xsl:apply-templates select="statement//fillin" mode="declare-blanks" />
                     <xsl:text>}</xsl:text>
-                <xsl:call-template name="dynamic-setup"></xsl:call-template>
-                <xsl:call-template name="dynamic-feedback"></xsl:call-template>
+                    <xsl:call-template name="dynamic-setup"></xsl:call-template>
+                    <xsl:call-template name="dynamic-feedback"></xsl:call-template>
                 <xsl:text>&#xa;}</xsl:text>
             </script>
         </div>
@@ -86,13 +86,13 @@
     </div>
 </xsl:template>
 
-<!-- Parse the hint. -->
+<!-- Runestone does not support hints or solutions. -->
+<!-- Included implementation just in case           -->
 <xsl:template match="hint" mode="runestone-json">
     <xsl:text>,&#xa;"problemHintHtml": </xsl:text>
     <xsl:apply-templates select="." mode="stringify-content" />
 </xsl:template>
 
-<!-- Parse the solution. -->
 <xsl:template match="solution" mode="runestone-json">
     <xsl:text>,&#xa;"problemSolutionHtml": </xsl:text>
     <xsl:apply-templates select="." mode="stringify-content" />
@@ -112,11 +112,13 @@
     </xsl:if>
 </xsl:template>
 
-<!-- Create the dynamic aspect of the problem. -->
-<!-- This includes: setup and evaluation -->
+<!-- Create the dynamic aspect of the problem.           -->
+<!-- Define all of the mathematical elements as well as  -->
+<!-- objects (e.g. graphs) that might depend on them     -->
 <xsl:template name="dynamic-setup">
-    <!-- The actual setup code is javascript enclosed in quotes. -->
     <xsl:text>,&#xa;"dyn_vars": </xsl:text>
+    <!-- The actual setup code is javascript enclosed in quotes. -->
+    <!-- The declaration creates the objects that are needed.    -->
     <xsl:variable name="js_code">
         <!-- Initialize the math environment -->
         <xsl:text>v._menv = new BTM({'rand':rand});&#xa;</xsl:text>
@@ -128,6 +130,8 @@
         <xsl:apply-templates select="dynamic-setup/de-term" mode="runestone-setup"/>
         <!-- Prepare evaluation and feedback -->
         <xsl:call-template name="set-blank-types"/>
+        <!-- Any additional post-processing would go here,    -->
+        <!-- such as needed content to define graphs.         -->
     </xsl:variable>
     <xsl:call-template name="escape-quote-string">
         <xsl:with-param name="string" select="$js_code"/>
@@ -222,7 +226,7 @@
     </xsl:variable>
     <xsl:text>v._menv.addParameter(</xsl:text>
         <xsl:call-template name="quote-string">
-          <xsl:with-param name="string" select="@name"/>
+            <xsl:with-param name="string" select="@name"/>
         </xsl:call-template>
         <xsl:text>, { mode: 'random'</xsl:text>
         <xsl:text>, min: </xsl:text><xsl:value-of select="$param-rnd-min"/>
@@ -232,23 +236,24 @@
     <xsl:text> });&#xa;</xsl:text>
 </xsl:template>
 
-<!-- Generate a formula-based parameter. -->
+<!-- Calculate a parameter based on a formula of other parameters. -->
 <xsl:template name="calculate-parameter">
-  <xsl:param name="formula" />
-  <xsl:text>v._menv.addParameter(</xsl:text>
-  <xsl:call-template name="quote-string">
-    <xsl:with-param name="string" select="@name"/>
-  </xsl:call-template>
-  <xsl:text>, { mode: 'calculate'</xsl:text>
-  <xsl:text>, formula: </xsl:text>
-  <xsl:call-template name="quote-string">
-    <xsl:with-param name="string" select="$formula"/>
-  </xsl:call-template>
-  <xsl:text> });&#xa;</xsl:text>
-
+    <xsl:param name="formula" />
+    <xsl:text>v._menv.addParameter(</xsl:text>
+    <xsl:call-template name="quote-string">
+        <xsl:with-param name="string" select="@name"/>
+    </xsl:call-template>
+    <xsl:text>, { mode: 'calculate'</xsl:text>
+    <xsl:text>, formula: </xsl:text>
+    <xsl:call-template name="quote-string">
+        <xsl:with-param name="string" select="$formula"/>
+    </xsl:call-template>
+    <xsl:text> });&#xa;</xsl:text>
 </xsl:template>
 
-<!-- How to parse expressions in their math context -->
+<!-- mode="evaluate" is used during setup and during feedback evaluation  -->
+<!-- Define an expressions that will be parsed in their math context                -->
+<!-- The expression can be defined in terms of the parameters and other expressions -->
 <xsl:template match="de-term[@context='formula']" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:variable name="prefix">
@@ -259,11 +264,15 @@
     <xsl:value-of select="$prefix"/>
     <xsl:text>_menv.evaluateExpression(</xsl:text>
     <xsl:call-template name="quote-string">
-      <xsl:with-param name="string" select="."/>
+        <xsl:with-param name="string" select="."/>
     </xsl:call-template>
     <xsl:text>).reduce()</xsl:text>
 </xsl:template>
 
+<!-- Define an expressions as substitution (composition) of other expressions   -->
+<!-- ./start defines the outer (original) function                              -->
+<!-- ./match defines the variable that will be replaced                         -->
+<!-- ./replace defines the expression that will replace the variable            -->
 <xsl:template match="de-term[@context='substitution']" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:apply-templates select="./start/*" mode="evaluate">
@@ -280,6 +289,8 @@
     <xsl:text>}).reduce()</xsl:text>
 </xsl:template>
 
+<!-- var elements in expressions (evaluate) are replaced by their name -->
+<!-- During setup, we need to use the context of the `v` object        -->
 <xsl:template match="var" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:variable name="prefix">
@@ -291,6 +302,7 @@
     <xsl:value-of select="@name"/>
 </xsl:template>
 
+<!-- Nothing else is defined for evaluation during setup  -->
 <xsl:template match="/" mode="evaluate"/>
 
 <!-- How to *add* expressions/formulas to the math context -->
@@ -298,7 +310,7 @@
     <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
     <xsl:text> = v._menv.addExpression(</xsl:text>
     <xsl:call-template name="quote-string">
-      <xsl:with-param name="string" select="@name"/>
+        <xsl:with-param name="string" select="@name"/>
     </xsl:call-template>
     <xsl:text>, </xsl:text>
     <xsl:apply-templates select="." mode="evaluate">
@@ -502,7 +514,9 @@
     <xsl:for-each select="$tests">    <!-- Work through the layer of tests one at a time. -->
         <xsl:choose>
             <xsl:when test="name()='and'">
-                <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 1;&#xa;</xsl:text>
+                <xsl:text>    testResults[</xsl:text>
+                <xsl:value-of select="$level+1" />
+                <xsl:text>] = 1;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
                     <xsl:with-param name="submit" select="$submit" />
                     <xsl:with-param name="tests" select="./*" />
@@ -511,7 +525,9 @@
                 </xsl:call-template>
             </xsl:when>
             <xsl:when test="name()='or'">
-                <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 0;&#xa;</xsl:text>
+                <xsl:text>    testResults[</xsl:text>
+                <xsl:value-of select="$level+1" />
+                <xsl:text>] = 0;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
                     <xsl:with-param name="submit" select="$submit" />
                     <xsl:with-param name="tests" select="./*" />
