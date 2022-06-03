@@ -864,7 +864,7 @@ Book (with parts), "section" at level 3
                         <xsl:apply-templates select="text()|var" />
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:apply-templates select="text()|fillin" />
+                        <xsl:apply-templates select="text()|var|fillin" />
                     </xsl:otherwise>
                 </xsl:choose>
                 <!-- look ahead to absorb immediate clause-ending punctuation   -->
@@ -1030,7 +1030,7 @@ Book (with parts), "section" at level 3
     <!-- nodes within "me" and "men" with no changes -->
     <xsl:variable name="raw-latex">
         <xsl:choose>
-            <xsl:when test="ancestor::webwork">
+            <xsl:when test="ancestor::webwork|ancestor::exercise[@dynamic]">
                 <xsl:apply-templates select="text()|xref|var" />
             </xsl:when>
             <xsl:otherwise>
