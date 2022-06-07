@@ -45,7 +45,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Temporary, until we have confidence about impact   -->
 <!-- Not guaranteed to be exhaustive during development -->
 <!-- NB: ananlyzing *original* source, not *assembled*  -->
-<xsl:variable name="b-needs-runestone" select="boolean($original//exercise/choices|$original//exercise/blocks|$original//exercise/program)"/>
+<xsl:variable name="b-needs-runestone" select="boolean($original//exercise/choices|$original//exercise/blocks|$original//exercise/program|$original//exercise[@exercise-interactive='fillin-dynamic'])"/>
 
 <!-- The Runestone platform option requires output that can be used  -->
 <!-- on the server with a templating language/tool.  For books       -->
@@ -441,6 +441,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
                                (@exercise-interactive = 'matching') or
                                (@exercise-interactive = 'clickablearea') or
                                (@exercise-interactive = 'fillin-basic') or
+                               (@exercise-interactive = 'fillin-dynamic') or
                                (@exercise-interactive = 'coding') or
                                (@exercise-interactive = 'shortanswer')]
                               |project[@exercise-interactive = 'coding']

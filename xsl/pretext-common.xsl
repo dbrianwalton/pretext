@@ -1030,7 +1030,7 @@ Book (with parts), "section" at level 3
     <!-- nodes within "me" and "men" with no changes -->
     <xsl:variable name="raw-latex">
         <xsl:choose>
-            <xsl:when test="ancestor::webwork|ancestor::exercise[@dynamic]">
+            <xsl:when test="ancestor::webwork|ancestor::exercise[@exercise-interactive='fillin-dynamic']">
                 <xsl:apply-templates select="text()|xref|var" />
             </xsl:when>
             <xsl:otherwise>
