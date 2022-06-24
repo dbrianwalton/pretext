@@ -18,23 +18,23 @@
 <xsl:template match="/">
     <xsl:apply-templates select="mathbook|pretext" mode="generic-warnings" />
     <xsl:apply-templates select="mathbook|pretext" mode="deprecation-warnings" />
-    <xsl:apply-templates select="*//exercise[@dynamic]" mode="webwork"/>
+    <xsl:apply-templates select="*//exercise[@exercise-interactive='fillin-dynamic']" mode="webwork"/>
 </xsl:template>
 
 
 <!-- Currently only designed to address #exercise elements with attribute @dynamic -->
 <!-- Generate a separate .pg file for each such element. -->
-<xsl:template match="exercise[@dynamic]" mode="webwork">
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']" mode="webwork">
     <xsl:variable name="filename">
-        <xsl:apply-templates select="." mode="visible-id" />
+        <xsl:apply-templates select="." mode="long-name" />
     </xsl:variable>
     <exsl:document href="{$filename}.pg" method="text">
         <!-- Common setup: define document, load macros, etc. -->
         <xsl:call-template name="webwork-pg-header" />
         <!-- Randomization and creation of expressions. -->
-        <xsl:apply-templates select="setup" mode="webwork-setup" />
+        <xsl:apply-templates select="dynamic-setup/de-object" mode="webwork-setup" />
         <!-- Create the answer checkers and feedback (answer hints). -->
-        <xsl:apply-templates select="evaluation" mode="webwork" />
+        <xsl:apply-templates select="dynamic-evaluation" mode="webwork" />
         <!-- Generate the content of the exercise. -->
         <xsl:apply-templates select="statement" mode="webwork" />
         <xsl:apply-templates select="hint" mode="webwork" />
@@ -46,130 +46,225 @@
 
 <!-- Common setup: define document, load macros, etc. -->
 <xsl:template name="webwork-pg-header">
-    <xsl:text>DOCUMENT();&#10;</xsl:text>
-    <xsl:text>loadMacros(&#10;</xsl:text>
-    <xsl:text>  "PGstandard.pl",&#10;</xsl:text>
-    <xsl:text>  "PGML.pl",&#10;</xsl:text>
-    <xsl:text>  "MathObjects.pl",&#10;</xsl:text>
-    <xsl:text>  "PGcourse.pl",&#10;</xsl:text>
-    <xsl:text>  "parserNumberWithUnits.pl",&#10;</xsl:text>
-    <xsl:text>  "contextArbitraryString.pl",&#10;</xsl:text>
-    <xsl:text>  "parserMultiAnswer.pl",&#10;</xsl:text>
-    <xsl:text>  "parserPopUp.pl",&#10;</xsl:text>
-    <xsl:text>  "contextInequalities.pl",&#10;</xsl:text>
-    <xsl:text>  "PGgraphmacros.pl",&#10;</xsl:text>
-    <xsl:text>);&#10;</xsl:text>
-    <xsl:text>TEXT(beginproblem());&#10;</xsl:text>
-    <xsl:text>$showPartialCorrectAnswers = 1;&#10;</xsl:text>
-    <xsl:text>Context("Numeric");&#10;</xsl:text>
+    <xsl:text>DOCUMENT();&#xa;</xsl:text>
+    <xsl:text>loadMacros(&#xa;</xsl:text>
+    <xsl:text>  "PGstandard.pl",&#xa;</xsl:text>
+    <xsl:text>  "PGML.pl",&#xa;</xsl:text>
+    <xsl:text>  "MathObjects.pl",&#xa;</xsl:text>
+    <xsl:text>  "PGcourse.pl",&#xa;</xsl:text>
+    <xsl:text>  "parserNumberWithUnits.pl",&#xa;</xsl:text>
+    <xsl:text>  "contextArbitraryString.pl",&#xa;</xsl:text>
+    <xsl:text>  "parserMultiAnswer.pl",&#xa;</xsl:text>
+    <xsl:text>  "parserPopUp.pl",&#xa;</xsl:text>
+    <xsl:text>  "contextInequalities.pl",&#xa;</xsl:text>
+    <xsl:text>  "PGgraphmacros.pl",&#xa;</xsl:text>
+    <xsl:text>);&#xa;</xsl:text>
+    <xsl:text>TEXT(beginproblem());&#xa;</xsl:text>
+    <xsl:text>$showPartialCorrectAnswers = 1;&#xa;</xsl:text>
+    <xsl:text>Context("Numeric");&#xa;</xsl:text>
 </xsl:template>
 
 <!-- Parse the statement using extract-pg.xsl inside the open/close calls. -->
-<xsl:template match="exercise[@dynamic]//statement" mode="webwork">
-    <xsl:text>################################################&#10;</xsl:text>
-    <xsl:text>BEGIN_PGML&#10;</xsl:text>
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//statement" mode="webwork">
+    <xsl:text>################################################&#xa;</xsl:text>
+    <xsl:text>BEGIN_PGML&#xa;</xsl:text>
     <xsl:apply-templates select="*" />
-    <xsl:text>END_PGML&#10;</xsl:text>
-    <xsl:text>################################################&#10;</xsl:text>
+    <xsl:text>END_PGML&#xa;</xsl:text>
+    <xsl:text>################################################&#xa;</xsl:text>
 </xsl:template>
 
 <!-- Parse the hint using extract-pg.xsl inside the open/close calls. -->
-<xsl:template match="exercise[@dynamic]//hint" mode="webwork">
-    <xsl:text>################################################&#10;</xsl:text>
-    <xsl:text>BEGIN_PGML_HINT&#10;</xsl:text>
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//hint" mode="webwork">
+    <xsl:text>################################################&#xa;</xsl:text>
+    <xsl:text>BEGIN_PGML_HINT&#xa;</xsl:text>
     <xsl:apply-templates select="*" />
-    <xsl:text>END_PGML_HINT&#10;</xsl:text>
-    <xsl:text>################################################&#10;</xsl:text>
+    <xsl:text>END_PGML_HINT&#xa;</xsl:text>
+    <xsl:text>################################################&#xa;</xsl:text>
 </xsl:template>
 
 <!-- Parse the solution using extract-pg.xsl inside the open/close calls. -->
-<xsl:template match="exercise[@dynamic]//solution" mode="webwork">
-    <xsl:text>################################################&#10;</xsl:text>
-    <xsl:text>BEGIN_PGML_SOLUTION&#10;</xsl:text>
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//solution" mode="webwork">
+    <xsl:text>################################################&#xa;</xsl:text>
+    <xsl:text>BEGIN_PGML_SOLUTION&#xa;</xsl:text>
     <xsl:apply-templates select="*" />
-    <xsl:template name="webwork-close-solution">
-    <xsl:text>END_PGML_SOLUTION&#10;</xsl:text>
-    <xsl:text>################################################&#10;</xsl:text>
+    <xsl:text>END_PGML_SOLUTION&#xa;</xsl:text>
+    <xsl:text>################################################&#xa;</xsl:text>
 </xsl:template>
 
 <!-- Close the .pg file as needed -->
 <xsl:template name="webwork-pg-footer">
-    <xsl:text>ENDDOCUMENT();&#10;</xsl:text>
+    <xsl:text>ENDDOCUMENT();&#xa;</xsl:text>
 </xsl:template>
 
 
 
-<!-- Part of Setup: Define a parameter -->
-<!-- @random means the parameter is random -->
-<!-- otherwise, defined by a constant or in terms of earlier parameters using mustache substitution -->
-<xsl:template match="de-parameter" mode="webwork-setup">
-    <xsl:text>$</xsl:text><xsl:value-of select="@name"/><xsl:text> = </xsl:text>
+<!-- Parse the Math Objects that define the problem.               -->
+<!-- Using @mode='evaluate' will implement the different contexts. -->
+<xsl:template match="de-object" mode="webwork-setup">
+    <xsl:text>$</xsl:text><xsl:value-of select="@name"/>
+    <xsl:text> = </xsl:text>
+    <xsl:apply-templates select="." mode="evaluate" />
+    <xsl:text>;&#xa;</xsl:text>
+</xsl:template>
+
+
+<!-- Part of Setup: Define a pure number (constant/parameter)  -->
+<!-- Multiple possible modes: value/formula, evaluate (from    -->
+<!-- a formula at a point), and random                         -->
+<xsl:template match="de-object[@context='number']" mode="evaluate">
     <xsl:choose>
-        <xsl:when test="@random='uniform'">
-            <xsl:call-template name="random-parameter" />
+        <xsl:when test="@mode='value'">
+            <xsl:value-of select="." />
         </xsl:when>
-        <xsl:otherwise>
+        <xsl:when test="@mode='formula'">
+            <xsl:text>Number("</xsl:text>
             <xsl:call-template name="webwork-mustache-names" >
                 <xsl:with-param name="mustache-string" select="."/>
             </xsl:call-template>
+            <xsl:text>")</xsl:text>
+        </xsl:when>
+        <xsl:when test="@mode='evaluate'">
+            <xsl:apply-templates select="formula/*" mode="evaluate" />
+            <xsl:text>->eval(</xsl:text>
+                <xsl:apply-templates select="variable" mode="evaluation-binding" />
+            <xsl:text>)</xsl:text>
+        </xsl:when>
+        <xsl:when test="@mode='random'">
+            <xsl:apply-templates select="." mode="evaluate-random" />
+        </xsl:when>
+        <xsl:otherwise>
         </xsl:otherwise>
-        <xsl:text>;&#10;</xsl:text>
+        <xsl:text>;&#xa;</xsl:text>
     </xsl:choose>
 </xsl:template>
 
-<!-- WeBWorK: Generate a random parameter. -->
-<!-- @min: lowest value -->
-<!-- @max: highest value -->
-<!-- @by: increment between values -->
-<!-- @nonzero = 'yes': exclude value of zero from possibilities -->
-<xsl:template name="random-parameter">
-    <xsl:variable name="param-rnd-min">
-        <xsl:choose>
-            <xsl:when test="@min">
-                <xsl:value-of select="@min"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>0</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-    <xsl:variable name="param-rnd-max">
-        <xsl:choose>
-            <xsl:when test="@max">
-                <xsl:value-of select="@max"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>1</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-    <xsl:variable name="param-rnd-by">
-        <xsl:choose>
-            <xsl:when test="@by">
-                <xsl:value-of select="@by"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>1</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
+<!-- Part of Setup: Define expressions/formulas -->
+<!-- Multiple possible modes: value/formula, evaluate (from    -->
+<!-- a formula at a point), and random                         -->
+<xsl:template match="de-object[@context='formula']" mode="evaluate">
     <xsl:choose>
-        <xsl:when test="@nonzero = 'yes'">
-            <xsl:text>non_zero_random</xsl:text>
+        <xsl:when test="@mode='formula'">
+            <xsl:text>Formula("</xsl:text>
+            <xsl:call-template name="webwork-mustache-names" >
+                <xsl:with-param name="mustache-string" select="."/>
+            </xsl:call-template>
+            <xsl:text>")</xsl:text>
+        </xsl:when>
+        <xsl:when test="@mode='substitution' or @mode='evaluate'">
+            <xsl:apply-templates select="formula/*" mode="evaluate" />
+            <xsl:text>->substitute(</xsl:text>
+                <xsl:apply-templates select="variable" mode="evaluation-binding" />
+            <xsl:text>)</xsl:text>
+        </xsl:when>
+        <xsl:when test="@mode='derivative'">
+            <xsl:apply-templates select="formula/*" mode="evaluate" />
+            <xsl:text>->D(</xsl:text>
+                <xsl:apply-templates select="variable" mode="quote-list" />
+            <xsl:text>)</xsl:text>
         </xsl:when>
         <xsl:otherwise>
-            <xsl:text>random</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>(</xsl:text><xsl:value-of select="$param-rnd-min"/>
-        <xsl:text>,</xsl:text><xsl:value-of select="$param-rnd-max"/>
-        <xsl:text>,</xsl:text><xsl:value-of select="$param-rnd-by"/>
-    <xsl:text>);&#10;</xsl:text>
+    <xsl:text>->reduce</xsl:text>
+</xsl:template>
+
+<!-- Used during composition and evaluation of a variable-->
+<xsl:template match="variable" mode="evaluation-binding">
+    <xsl:if test="position() > 1">
+        <xsl:text>, </xsl:text>
+    </xsl:if>
+    <xsl:value-of select="@name" />
+    <xsl:text>=></xsl:text>
+    <xsl:choose>
+        <xsl:when test="var or de-object">
+            <xsl:apply-templates select="var|de-object" mode="evaluate"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:value-of select="." />
+        </xsl:otherwise>
+    </xsl:choose>
+</xsl:template>
+
+<!-- Used in @mode='derivative' to specify variable of differentiation -->
+<xsl:template match="variable" mode="quote-list">
+    <xsl:if test="position() > 1">
+        <xsl:text>, </xsl:text>
+    </xsl:if>
+    <xsl:text>"</xsl:text>
+    <xsl:value-of select="@name" />
+    <xsl:text>"</xsl:text>
+</xsl:template>
+
+<!-- var elements in expressions (evaluate) are replaced by their name -->
+<!-- In WeBWorK we need to precede with dollar $, and to avoid name    -->
+<!-- errors, we'll also bracket the name to have a clear ending.       -->
+<xsl:template match="var" mode="evaluate">
+    <xsl:text>${</xsl:text>
+    <xsl:value-of select="@name"/>
+    <xsl:text>}</xsl:text>
+</xsl:template>
+
+
+<!-- WeBWorK: Generate a random parameter. -->
+<xsl:template match="de-object[@context='number' and @mode='random']" mode="evaluate-random">
+    <xsl:choose>
+        <!-- Support possible different distributions.                  -->
+        <!-- ########################################################## -->
+        <!-- Case 1: discrete uniform on arithmetic sequence of values  -->
+        <!-- @min: lowest value                                         -->
+        <!-- @max: highest value                                        -->
+        <!-- @by: increment between values                              -->
+        <!-- @nonzero = 'yes': exclude value of zero from possibilities -->
+        <xsl:when test="options[@distribution='discrete']">
+            <xsl:variable name="rnd-min">
+                <xsl:choose>
+                    <xsl:when test="options/@min">
+                        <xsl:value-of select="options/@min"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>0</xsl:text>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="rnd-max">
+                <xsl:choose>
+                    <xsl:when test="options/@max">
+                        <xsl:value-of select="options/@max"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>1</xsl:text>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="rnd-by">
+                <xsl:choose>
+                    <xsl:when test="options/@by">
+                        <xsl:value-of select="options/@by"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:text>1</xsl:text>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:choose>
+                <xsl:when test="options/@nonzero = 'yes'">
+                    <xsl:text>non_zero_random</xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>random(</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+            <xsl:text>(</xsl:text><xsl:value-of select="$rnd-min"/>
+            <xsl:text>,</xsl:text><xsl:value-of select="$rnd-max"/>
+            <xsl:text>,</xsl:text><xsl:value-of select="$rnd-by"/>
+            <xsl:text>)</xsl:text>
+        </xsl:when>
+    </xsl:choose>
 </xsl:template>
 
 <!-- PGML answer input               -->
 <!-- Example: [_____]{$ans}          -->
-<xsl:template match="fillin">
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//fillin">
     <xsl:param name="b-human-readable" />
     <xsl:apply-templates select="." mode="field">
         <xsl:with-param name="b-human-readable" select="$b-human-readable" />
@@ -217,76 +312,10 @@
 </xsl:template>
 
 
-<!-- Part of Setup: Define MathObject expressions/formulas -->
-<xsl:template match="de-term[@context='formula']" mode="webwork-setup">
-    <xsl:text>$</xsl:text><xsl:value-of select="@name"/>
-    <xsl:text> = </xsl:text>
-    <!-- Actual call to Compute is in separate template for general calls. -->
-    <xsl:apply-templates select="." mode="webwork" />
-    <xsl:text>->reduce;&#10;</xsl:text>
-</xsl:template>
-
-<!-- General creation of formula object in WeBWorK. -->
-<xsl:template match="de-term[@context='formula']" mode="webwork">
-    <xsl:param name="term" />
-    <xsl:text>Compute("</xsl:text>
-    <xsl:call-template name="webwork-mustache-names" >
-        <xsl:with-param name="mustache-string" select="." />
-    </xsl:call-template>
-    <xsl:text>")</xsl:text>
-</xsl:template>
-
-
-<!-- Part of Setup: Define MathObject expressions/formulas using substitution. -->
-<xsl:template match="de-term[@context='substitution']" mode="webwork-setup">
-    <!-- New name of the generated term -->
-    <xsl:text>$</xsl:text>
-    <xsl:value-of select="@name"/>
-    <xsl:text> = </xsl:text>
-    <xsl:apply-templates select="." mode="webwork" />
-    <xsl:text>->reduce;&#10;</xsl:text>
-</xsl:template>
-
-<!-- General creation of formula object using substitution. -->
-<xsl:template match="de-term[@context='substitution']" mode="webwork">
-    <xsl:choose>
-        <!-- User might have provided a pre-generated term's name -->
-        <xsl:when test="./start/var/@name">
-            <xsl:text>$</xsl:text>
-            <xsl:value-of select="./start/var/@name" />
-        </xsl:when>
-        <!-- or they might have provided a formula that needs to be generated first. -->
-        <xsl:otherwise>
-            <xsl:text>Compute("</xsl:text>
-            <xsl:call-template name="webwork-mustache-names" >
-                <xsl:with-param name="mustache-string" select="./start" />
-            </xsl:call-template>
-            <xsl:text>")</xsl:text>
-        </xsl:otherwise>
-    </xsl:choose>
-    <!-- With that object, apply the substitution -->
-    <xsl:text>-&gt;substitute(</xsl:text>
-    <xsl:value-of select="./match" />
-    <xsl:text disable-output-escaping="yes"> =&gt; </xsl:text>
-    <xsl:choose>
-        <xsl:when test="./replace/var/@name">
-            <xsl:text>$</xsl:text>
-            <xsl:value-of select="./replace/var/@name" />
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:text>"</xsl:text>
-            <xsl:call-template name="webwork-mustache-names" >
-                <xsl:with-param name="mustache-string" select="./replace" />
-            </xsl:call-template>
-            <xsl:text>")</xsl:text>
-        </xsl:otherwise>
-    </xsl:choose>
-    <xsl:text>)</xsl:text>
-</xsl:template>
 
 <!-- Template for answer checking. Actual work done by specialized templates. -->
-<xsl:template match="exercise[@dynamic]//evaluation" mode="webwork">
-    <xsl:variable name="responseTree" select="ancestor::exercise[@dynamic]//fillin"/>
+<xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//dynamic-evaluation" mode="webwork">
+    <xsl:variable name="responseTree" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//fillin"/>
     <xsl:variable name="numberAnswers" select="count($responseTree)"/>
     <xsl:variable name="multiAns">
         <xsl:call-template name="de-requires-multianswer" />
@@ -307,8 +336,8 @@
 
 <!-- utility template to test if a problem requires MultiAnswer -->
 <xsl:template name="de-requires-multianswer">
-    <xsl:variable name="responseTree" select="ancestor::exercise[@dynamic]//fillin" />
-    <xsl:if test="count($responseTree) > 1 and ancestor::exercise[@dynamic]//evaluation[@answers-coupled='yes']">
+    <xsl:variable name="responseTree" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//fillin" />
+    <xsl:if test="count($responseTree) > 1 and ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation[@answers-coupled='yes']">
         <xsl:text>1</xsl:text>
     </xsl:if>
 </xsl:template>
@@ -320,50 +349,55 @@
     <!-- Generate the correct answer evaluateers, looping through the fillins. -->
     <xsl:for-each select="$responseTree">
         <xsl:variable name="curFillIn" select="." />
-        <xsl:variable name="check" select="ancestor::exercise[@dynamic]//evaluation/evaluate[@submit = $curFillIn/@submit]" />
+        <xsl:variable name="check" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate[@submit = $curFillIn/@submit]" />
         <xsl:text>$_</xsl:text>
         <xsl:value-of select="@correct" />
         <xsl:text>_cmp = ${</xsl:text>
         <xsl:value-of select="$curFillIn/@correct" />
-        <xsl:text>}->cmp(</xsl:text>
-        <!-- There is no special compare necessary unless one of the check values has @correct='yes' -->
-        <xsl:if test="$check/test[@correct='yes']">
-            <xsl:variable name="curTest" select="$check/test[@correct='yes']" />
+        <xsl:text>}->cmp(&#xa;</xsl:text>
+        <xsl:text>  checker => sub {&#xa;</xsl:text>
+        <xsl:text>    my ( $_correct, $_student, $_ansHash ) = @_;&#xa;</xsl:text>
+        <xsl:choose>
+            <!-- Custom checking if a test has @correct='yes' -->
+            <xsl:when test="$check/test[@correct='yes']">
+                <xsl:variable name="curTest" select="$check/test[@correct='yes']" />
 
-            <!-- Create a checker function. Initialize a stack of flag variables to track results. -->
-            <xsl:text>&#10;</xsl:text>
-            <xsl:text>  checker => sub {&#10;</xsl:text>
-            <xsl:text>    my ( $_correct, $_student, $_ansHash ) = @_;&#10;</xsl:text>
-            <xsl:text>    my @_testResults;&#10;</xsl:text>
-            <xsl:choose>
-                <xsl:when test="count($curTest/*[name() != 'feedback']) = 1">
-                    <xsl:call-template name="checker-simple">
-                        <xsl:with-param name="curTest" select="$curTest/*" />
-                        <xsl:with-param name="level" select="0" />
-                    </xsl:call-template>
-                </xsl:when>
-                <xsl:otherwise>
-                    <xsl:call-template name="checker-layer">
-                        <xsl:with-param name="tests" select="$curTest/*" />
-                        <xsl:with-param name="level" select="0" />
-                        <xsl:with-param name="logic" select="'and'" /> <!-- All tests at first layer must be true -->
-                    </xsl:call-template>
-                </xsl:otherwise>
-            </xsl:choose>
-            <xsl:text>    return $_testResults[0];&#10;</xsl:text>
-            <xsl:text>  }&#10;</xsl:text>
-        </xsl:if>
+                <!-- Create a checker function. Initialize a stack of flag variables to track results. -->
+                <xsl:text>    my @_testResults;&#xa;</xsl:text>
+                <xsl:choose>
+                    <xsl:when test="count($curTest/*[name() != 'feedback']) = 1">
+                        <xsl:call-template name="checker-simple">
+                            <xsl:with-param name="curTest" select="$curTest/*" />
+                            <xsl:with-param name="level" select="0" />
+                        </xsl:call-template>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:call-template name="checker-layer">
+                            <xsl:with-param name="tests" select="$curTest/*" />
+                            <xsl:with-param name="level" select="0" />
+                            <xsl:with-param name="logic" select="'and'" /> <!-- All tests at first layer must be true -->
+                        </xsl:call-template>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <xsl:text>    return $_testResults[0];&#xa;</xsl:text>
+            </xsl:when>
+            <!-- Otherwise just do a direct comparison with correct. -->
+            <xsl:otherwise>
+                <xsl:text>    return ($correct == $student ? 1 : 0);&#xa;</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+        <xsl:text>  }&#xa;</xsl:text>
         <xsl:text>)</xsl:text>
         <!-- Feedback in post filter (custom checker possibly not required). -->
         <xsl:if test="$check/test[not(@correct='yes')]">
             <xsl:variable name="feedback-tests" select="$check/test[not(@correct='yes')]" />
-            <xsl:text>-&gt;withPostFilter( sub {&#10;</xsl:text>
-            <xsl:text>    my $_ansHash = shift;&#10;</xsl:text>
-            <xsl:text>    my $_correct = $_ansHash->{correct_value};&#10;</xsl:text>
-            <xsl:text>    my $_student = $_ansHash->{student_value};&#10;</xsl:text>
-            <xsl:text>    ## Advance through the tests for additional feedback. &#10;</xsl:text>
+            <xsl:text>-&gt;withPostFilter( sub {&#xa;</xsl:text>
+            <xsl:text>    my $_ansHash = shift;&#xa;</xsl:text>
+            <xsl:text>    my $_correct = $_ansHash->{correct_value};&#xa;</xsl:text>
+            <xsl:text>    my $_student = $_ansHash->{student_value};&#xa;</xsl:text>
+            <xsl:text>    ## Advance through the tests for additional feedback. &#xa;</xsl:text>
             <xsl:for-each select="$feedback-tests">
-                <xsl:text>    my @_testResults;&#10;</xsl:text>
+                <xsl:text>    my @_testResults;&#xa;</xsl:text>
                 <xsl:choose>
                     <xsl:when test="count(./*[name() != 'feedback']) = 1">
                         <xsl:call-template name="checker-simple">
@@ -381,13 +415,13 @@
                 </xsl:choose>
                 <xsl:text>    $_ansHash->{ans_message} = "</xsl:text>
                 <xsl:apply-templates select="./feedback" />
-                <xsl:text>" if ($_ansHash->{ans_message} == "" and $testResults[0]);&#10;</xsl:text>
+                <xsl:text>" if ($_ansHash->{ans_message} == "" and $testResults[0]);&#xa;</xsl:text>
             </xsl:for-each>
-            <xsl:text>    return $_ansHash;&#10;</xsl:text>
-            <xsl:text>  }&#10;</xsl:text>
+            <xsl:text>    return $_ansHash;&#xa;</xsl:text>
+            <xsl:text>  }&#xa;</xsl:text>
             <xsl:text>)</xsl:text>
         </xsl:if>
-        <xsl:text>;&#10;</xsl:text>
+        <xsl:text>;&#xa;</xsl:text>
     </xsl:for-each>
 </xsl:template>
 
@@ -395,38 +429,38 @@
 <!-- Feedback is part of the MultiAnswer checker. -->
 <xsl:template name="de-multiple-answers">
     <xsl:param name="responseTree" />
-    <xsl:variable name="checks" select="ancestor::exercise[@dynamic]//evaluation/evaluate" />
+    <xsl:variable name="checks" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate" />
     <xsl:variable name="single-check" select="$checks[@all='yes']" />
     <xsl:text>$_mc_cmp = MultiAnswer(</xsl:text>
     <xsl:call-template name="de-correct-answers-comma">
         <xsl:with-param name="responses" select="$responseTree" />
     </xsl:call-template>
-    <xsl:text>)-&gt;with(&#10;</xsl:text>
+    <xsl:text>)-&gt;with(&#xa;</xsl:text>
     <xsl:choose>
         <xsl:when test="$single-check">
-            <xsl:text>  singleResult =&gt; 1,&#10;</xsl:text>
+            <xsl:text>  singleResult =&gt; 1,&#xa;</xsl:text>
         </xsl:when>
         <xsl:otherwise>
-            <xsl:text>  singleResult =&gt; 0,&#10;</xsl:text>
+            <xsl:text>  singleResult =&gt; 0,&#xa;</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>  checker =&gt; sub {&#10;</xsl:text>
-    <xsl:text>    my ( $_correct, $_student, $_ansHash ) = @_;&#10;</xsl:text>
-    <xsl:text>    my @_results, @_hasFeedback;&#10;</xsl:text>
-    <xsl:text>    ## Extract blanks based on names ##&#10;</xsl:text>
+    <xsl:text>  checker =&gt; sub {&#xa;</xsl:text>
+    <xsl:text>    my ( $_correct, $_student, $_ansHash ) = @_;&#xa;</xsl:text>
+    <xsl:text>    my @_results, @_hasFeedback;&#xa;</xsl:text>
+    <xsl:text>    ## Extract blanks based on names ##&#xa;</xsl:text>
     <xsl:for-each select="$responseTree">
         <xsl:text>    my $</xsl:text>
         <xsl:value-of select="@submit"/>
         <xsl:text> = @{$_student}[</xsl:text>
         <xsl:value-of select="position()-1"/>
-        <xsl:text>];&#10;</xsl:text>
+        <xsl:text>];&#xa;</xsl:text>
     </xsl:for-each>
     <!-- Different pathway if *all* blanks scored at once vs each scored separately. -->
     <xsl:choose>
         <xsl:when test="$single-check">
             <xsl:variable name="single-correct-test" select="$single-check/test[@correct='yes']" />
-            <xsl:text>    ## Single test for results. ##&#10;</xsl:text>
-            <xsl:text>    my @_testResults;&#10;</xsl:text>
+            <xsl:text>    ## Single test for results. ##&#xa;</xsl:text>
+            <xsl:text>    my @_testResults;&#xa;</xsl:text>
             <xsl:choose>
                 <xsl:when test="count($single-correct-test/*[name() != 'feedback']) = 1">
                     <xsl:call-template name="checker-simple">
@@ -442,18 +476,18 @@
                     </xsl:call-template>
                 </xsl:otherwise>
             </xsl:choose>
-            <xsl:text>    $_results[0] = $_testResults[0];&#10;</xsl:text>
+            <xsl:text>    $_results[0] = $_testResults[0];&#xa;</xsl:text>
         </xsl:when>
         <xsl:otherwise>
             <xsl:for-each select="$responseTree">
                 <xsl:variable name="curFillIn" select="." />
                 <xsl:variable name="curTest" select="$checks[@submit = $curFillIn/@submit]/test[@correct='yes']" />
-                <xsl:text>    ## Checker for </xsl:text><xsl:value-of select="$curFillIn/@submit"/><xsl:text>##&#10;</xsl:text>
-                <xsl:text>    $_hasFeedback[</xsl:text><xsl:value-of select="position($curFillIn)"/><xsl:text>] = 0;&#10;$</xsl:text>
+                <xsl:text>    ## Checker for </xsl:text><xsl:value-of select="$curFillIn/@submit"/><xsl:text>##&#xa;</xsl:text>
+                <xsl:text>    $_hasFeedback[</xsl:text><xsl:value-of select="position($curFillIn)"/><xsl:text>] = 0;&#xa;$</xsl:text>
                 <xsl:choose>
                     <!-- There is no special compare necessary unless one of the check values has @correct='yes' -->
                     <xsl:when test="$curTest">
-                        <xsl:text>    my @_testResults;&#10;</xsl:text>
+                        <xsl:text>    my @_testResults;&#xa;</xsl:text>
                         <xsl:choose>
                             <xsl:when test="count($curTest/*[name() != 'feedback']) = 1">
                                 <xsl:call-template name="checker-simple">
@@ -469,7 +503,7 @@
                                 </xsl:call-template>
                             </xsl:otherwise>
                         </xsl:choose>
-                        <xsl:text>    $_results[</xsl:text><xsl:value-of select="position($curFillIn)"/><xsl:text>] = $_testResults[0];&#10;</xsl:text>
+                        <xsl:text>    $_results[</xsl:text><xsl:value-of select="position($curFillIn)"/><xsl:text>] = $_testResults[0];&#xa;</xsl:text>
                     </xsl:when>
                     <!-- No test with @correct='yes' means simple comparison with given answer. -->
                     <xsl:otherwise>
@@ -479,7 +513,7 @@
                         <xsl:value-of select="$curFillIn/@correct"/>
                         <xsl:text> == $</xsl:text>
                         <xsl:value-of select="$curFillIn/@submit"/>
-                        <xsl:text>);&#10;</xsl:text>
+                        <xsl:text>);&#xa;</xsl:text>
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:for-each>
@@ -489,10 +523,10 @@
     <xsl:for-each select="$responseTree">
         <xsl:variable name="curFillIndex" select="position()-1"/>
         <xsl:variable name="responseName" select="@submit"/>
-        <xsl:variable name="feedbackTests" select="ancestor::exercise[@dynamic]//evaluation/evaluate[@submit = $responseName]/test[not(@correct='yes')]" />
+        <xsl:variable name="feedbackTests" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate[@submit = $responseName]/test[not(@correct='yes')]" />
         <xsl:for-each select="$feedbackTests">
-            <xsl:text>    ## Feedback for </xsl:text><xsl:value-of select="$responseName"/><xsl:text> ##&#10;</xsl:text>
-            <xsl:text>    my @_testResults;&#10;</xsl:text>
+            <xsl:text>    ## Feedback for </xsl:text><xsl:value-of select="$responseName"/><xsl:text> ##&#xa;</xsl:text>
+            <xsl:text>    my @_testResults;&#xa;</xsl:text>
             <xsl:choose>
                 <xsl:when test="count(./*[name() != 'feedback']) = 1">
                     <xsl:call-template name="checker-simple">
@@ -508,15 +542,15 @@
                     </xsl:call-template>
                 </xsl:otherwise>
             </xsl:choose>
-            <xsl:text>    if (not($_hasFeedback[</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>]) and $testResults[0]) {&#10;</xsl:text>
-            <xsl:text>      $_hasFeedback[</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>] = 1;&#10;</xsl:text>
-            <xsl:text>      $_ansHash->setMessage(</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>, "</xsl:text><xsl:apply-templates select="./feedback" /><xsl:text>");&#10;</xsl:text>
-            <xsl:text>    }&#10;</xsl:text>
+            <xsl:text>    if (not($_hasFeedback[</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>]) and $testResults[0]) {&#xa;</xsl:text>
+            <xsl:text>      $_hasFeedback[</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>] = 1;&#xa;</xsl:text>
+            <xsl:text>      $_ansHash->setMessage(</xsl:text><xsl:value-of select="$curFillIndex"/><xsl:text>, "</xsl:text><xsl:apply-templates select="./feedback" /><xsl:text>");&#xa;</xsl:text>
+            <xsl:text>    }&#xa;</xsl:text>
         </xsl:for-each>
     </xsl:for-each>
-    <xsl:text>    return [ @_results ];&#10;</xsl:text>
-    <xsl:text>  }&#10;</xsl:text>
-    <xsl:text>);&#10;</xsl:text>
+    <xsl:text>    return [ @_results ];&#xa;</xsl:text>
+    <xsl:text>  }&#xa;</xsl:text>
+    <xsl:text>);&#xa;</xsl:text>
 </xsl:template>
 
 <!-- This template is called for a simple test (no compound logic). -->
@@ -542,7 +576,7 @@
             <xsl:text> == $student</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>);&#10;</xsl:text>
+    <xsl:text>);&#xa;</xsl:text>
 </xsl:template>
 
 <!-- A test can also be composite involving a combination of logical tests -->
@@ -553,16 +587,16 @@
     <xsl:param name="logic" select="'and'" />    <!-- and = all must be true, or = at least one, not = negation -->
     <xsl:choose>
         <xsl:when test="$logic = 'and'">         <!-- Treat logic like multipication. A single false (0) makes product zero -->
-            <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" /><xsl:text>] = 1;&#10;</xsl:text>
+            <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" /><xsl:text>] = 1;&#xa;</xsl:text>
         </xsl:when>
         <xsl:when test="$logic = 'or'">         <!-- Treat logic like addition. A single true makes sum positive -->
-            <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" /><xsl:text>] = 0;&#10;</xsl:text>
+            <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" /><xsl:text>] = 0;&#xa;</xsl:text>
         </xsl:when>
     </xsl:choose>
     <xsl:for-each select="$tests">    <!-- Work through the layer of tests one at a time. -->
         <xsl:choose>
             <xsl:when test="name()='and'">
-                <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 1;&#10;</xsl:text>
+                <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 1;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
                     <xsl:with-param name="tests" select="./*" />
                     <xsl:with-param name="level" select="$level+1" />
@@ -570,7 +604,7 @@
                 </xsl:call-template>
             </xsl:when>
             <xsl:when test="name()='or'">
-                <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 0;&#10;</xsl:text>
+                <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>] = 0;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
                     <xsl:with-param name="tests" select="./*" />
                     <xsl:with-param name="level" select="$level+1" />
@@ -595,15 +629,15 @@
     <xsl:choose> <!-- Deal with the results of that recursive call to a deeper layer. -->
         <xsl:when test="$logic = 'and'">
             <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] *= $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#10;</xsl:text>
+            <xsl:text>] *= $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
         </xsl:when>
         <xsl:when test="$logic = 'or'">
             <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] += $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#10;</xsl:text>
+            <xsl:text>] += $_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
         </xsl:when>
         <xsl:when test="$logic = 'not'">
             <xsl:text>    $_testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] = not($_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>]);&#10;</xsl:text>
+            <xsl:text>] = not($_testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>]);&#xa;</xsl:text>
         </xsl:when>
     </xsl:choose>
 </xsl:template>

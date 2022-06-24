@@ -17,9 +17,17 @@
 <!-- Utility templates -->
 <xsl:template match="exercise[@exercise-interactive='fillin-dynamic']//fillin">
     <xsl:param name="b-human-readable" />
+    <xsl:variable name="parent-id">
+        <xsl:apply-templates select="ancestor::exercise[@exercise-interactive='fillin-dynamic']" mode="html-id" />
+    </xsl:variable>
     <xsl:element name="input">
         <xsl:attribute name="types"><xsl:text>text</xsl:text></xsl:attribute>
-        <xsl:attribute name="name"><xsl:value-of select="@submit"/></xsl:attribute>
+        <xsl:attribute name="id">
+            <xsl:value-of select="$parent-id"/>
+            <xsl:text>-</xsl:text>
+            <xsl:value-of select="@name"/>
+        </xsl:attribute>
+        <xsl:attribute name="name"><xsl:value-of select="@name"/></xsl:attribute>
     </xsl:element>
 </xsl:template>
 
@@ -61,15 +69,39 @@
 
 
 <xsl:template match="dynamic-graph" mode="body">
+    <xsl:variable name="width">
+        <xsl:choose>
+            <xsl:when test="@width">
+                <xsl:value-of select="@width"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>300px</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <xsl:variable name="height">
+        <xsl:choose>
+            <xsl:when test="@height">
+                <xsl:value-of select="@height"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>300px</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
     <div class="jxgbox">
         <xsl:attribute name="id">
             <xsl:text>[%=divid%]-</xsl:text>
             <xsl:value-of select="@sub-id"/>
         </xsl:attribute>
         <xsl:attribute name="style">
-            <xsl:text>width:300px; height:300px;</xsl:text>
-            <xsl:value-of select="@sub-id"/>
+            <xsl:text>width:</xsl:text>
+            <xsl:value-of select="$width"/>
+            <xsl:text>; height:</xsl:text>
+            <xsl:value-of select="$height"/>
+            <xsl:text>;</xsl:text>
         </xsl:attribute>
+        <xsl:text>Empty</xsl:text>
     </div>
 </xsl:template>
 
@@ -283,7 +315,7 @@
     <xsl:variable name="allow-drag">
         <xsl:choose>
             <xsl:when test="allow-drag"><xsl:value-of select="allow-drag"/></xsl:when>
-            <xsl:otherwise><xsl:text>false</xsl:text></xsl:otherwise>
+            <xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
     <xsl:text>, drag:{enabled:</xsl:text>
@@ -296,7 +328,7 @@
         </xsl:choose>
     </xsl:variable>
     <xsl:text>, showNavigation:</xsl:text>
-    <xsl:value-of select="$allow-drag"/>
+    <xsl:value-of select="$show-navigation"/>
 </xsl:template>
 
 <!-- Generate a JSON script element for the dynamic exercise. -->
@@ -325,7 +357,7 @@
                     <!-- The declaration creates the objects that are needed.    -->
                     <!-- The script is included as an escaped string             -->
                     <xsl:text>},&#xa;"dyn_vars": </xsl:text>
-                    <xsl:call-template name="dynamic-setup"></xsl:call-template>
+                    <xsl:call-template name="setup"></xsl:call-template>
                     <!-- An array of tests and feedback for answer evaluation    -->
                     <!-- Each blank has a corresponding array of test/feedback   -->
                     <!-- response. The test is Javascript (stringified) that     -->
@@ -334,7 +366,7 @@
                     <xsl:text>,&#xa;"feedbackArray": [</xsl:text>
                     <!-- In case all answers are based on one test               -->
                     <xsl:variable name="multiAns">
-                        <xsl:call-template name="get-multianswer-check" />
+                        <xsl:apply-templates select="evaluation" mode="get-multianswer-check" />
                     </xsl:variable>
                     <!-- Generate test/feedback pair for each fillin             -->
                     <xsl:apply-templates select="statement//fillin" mode="dynamic-feedback">
@@ -365,9 +397,9 @@
     <xsl:if test="position()>1">
         <xsl:text>, </xsl:text>
     </xsl:if>
-    <xsl:if test="@submit">
+    <xsl:if test="@name">
         <xsl:call-template name="quote-string">
-            <xsl:with-param name="string" select="@submit"/>
+            <xsl:with-param name="string" select="@name"/>
         </xsl:call-template>
         <xsl:text>: </xsl:text>
         <xsl:value-of select="position()-1"/>
@@ -377,12 +409,15 @@
 <!-- Create the dynamic aspect of the problem.           -->
 <!-- Define all of the mathematical elements as well as  -->
 <!-- objects (e.g. graphs) that might depend on them     -->
-<xsl:template name="dynamic-setup">
+<xsl:template name="setup">
     <xsl:variable name="js_code">
         <!-- Initialize the math environment -->
         <xsl:call-template name="set-dynamic-environment"/>
         <!-- Generate all of the declared math objects -->
-        <xsl:apply-templates select="dynamic-setup/de-object" mode="runestone-setup"/>
+        <xsl:apply-templates select="setup/de-object" mode="runestone-setup"/>
+        <xsl:if test="setup/postSetupScript">
+            <xsl:value-of select="setup/postSetupScript"/>
+        </xsl:if>
         <!-- Prepare evaluation and feedback -->
         <xsl:call-template name="set-blank-types"/>
         <!-- Any additional post-processing would go here,    -->
@@ -409,6 +444,9 @@
 <xsl:template name="setup-postContent">
     <xsl:text>v.afterContentRender = function() {&#xa;</xsl:text>
         <xsl:apply-templates select="statement//dynamic-graph" mode="runestone-setup"/>
+        <xsl:if test="setup/postRenderScript">
+            <xsl:value-of select="setup/postRenderScript"/>
+        </xsl:if>
     <xsl:text>};&#xa;</xsl:text>
 </xsl:template>
 
@@ -416,7 +454,7 @@
 <xsl:template match="fillin" mode="dynamic-feedback">
     <xsl:param name="multiAns"/>
     <xsl:variable name="curFillIn" select="."/>
-    <xsl:variable name="check" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//dynamic-evaluation/evaluate[@submit = $curFillIn/@submit]" />
+    <xsl:variable name="check" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate[@submit = $curFillIn/@name]" />
     <xsl:if test="position() > 1">
         <xsl:text>, </xsl:text>
     </xsl:if>
@@ -430,8 +468,8 @@
                 </xsl:when>
                 <xsl:when test="$check/test[@correct='yes']">
                     <xsl:call-template name="create-test">
+                        <xsl:with-param name="submit" select="$curFillIn/@name" />
                         <xsl:with-param name="test" select="$check/test[@correct='yes']/*" />
-                        <xsl:with-param name="submit" select="$curFillIn/@submit" />
                     </xsl:call-template>
                 </xsl:when>
                 <!-- If no explicit test, must be on the fillin. -->
@@ -440,7 +478,7 @@
                     <xsl:text>    return _menv.compareExpressions(</xsl:text>
                     <xsl:value-of select="$curFillIn/@correct"/>
                     <xsl:text>, </xsl:text>
-                    <xsl:value-of select="$curFillIn/@submit"/>
+                    <xsl:value-of select="$curFillIn/@name"/>
                     <xsl:text>);&#xa;}</xsl:text>
                 </xsl:otherwise>
             </xsl:choose>
@@ -465,8 +503,8 @@
         <xsl:call-template name="escape-quote-string">
             <xsl:with-param name="string">
                 <xsl:call-template name="create-test">
+                    <xsl:with-param name="submit" select="$curFillIn/@name" />
                     <xsl:with-param name="test" select="*" />
-                    <xsl:with-param name="submit" select="$curFillIn/@submit" />
                 </xsl:call-template>
                 <xsl:text>()</xsl:text>
             </xsl:with-param>
@@ -723,71 +761,13 @@
     <xsl:text>: </xsl:text>
     <xsl:choose>
         <xsl:when test="var or de-object">
-            <xsl:apply-templates select="var|/de-object" mode="evaluate">
+            <xsl:apply-templates select="var|de-object" mode="evaluate">
                 <xsl:with-param name="setupMode" select="$setupMode" />
             </xsl:apply-templates>
         </xsl:when>
         <xsl:otherwise>
             <xsl:value-of select="." />
         </xsl:otherwise>
-    </xsl:choose>
-</xsl:template>
-
-<!-- @random means the parameter is random -->
-<!-- otherwise, defined by a constant or in terms of earlier parameters using mustache substitution -->
-<xsl:template match="de-parameter" mode="runestone-setup">
-    <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
-    <xsl:text> = v._menv.addMathObject(</xsl:text>
-    <xsl:choose>
-        <xsl:when test="@random">
-    <xsl:variable name="param-rnd-min">
-        <xsl:choose>
-            <xsl:when test="@min">
-                <xsl:value-of select="@min"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>0</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-    <xsl:variable name="param-rnd-max">
-        <xsl:choose>
-            <xsl:when test="@max">
-                <xsl:value-of select="@max"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>1</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-    <xsl:variable name="param-rnd-by">
-        <xsl:choose>
-            <xsl:when test="@by">
-                <xsl:value-of select="@by"/>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>1</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-    <xsl:variable name="param-rnd-nonzero">
-        <xsl:choose>
-            <xsl:when test="@nonzero = 'yes'">
-              <xsl:text>true</xsl:text>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>false</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:variable>
-                <xsl:call-template name="random-parameter" />
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:call-template name="calculate-parameter" >
-                <xsl:with-param name="formula" select="."/>
-            </xsl:call-template>
-        </xsl:otherwise>
-        <xsl:text>;&#xa;</xsl:text>
     </xsl:choose>
 </xsl:template>
 
@@ -804,20 +784,6 @@
     <xsl:text>)&#xa;</xsl:text>
 </xsl:template>
 
-<!-- Calculate a parameter based on a formula of other parameters. -->
-<xsl:template name="calculate-parameter">
-    <xsl:param name="formula" />
-    <xsl:text>v._menv.addParameter(</xsl:text>
-    <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="@name"/>
-    </xsl:call-template>
-    <xsl:text>, { mode: 'calculate'</xsl:text>
-    <xsl:text>, formula: </xsl:text>
-    <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="$formula"/>
-    </xsl:call-template>
-    <xsl:text> });&#xa;</xsl:text>
-</xsl:template>
 
 <!-- mode="evaluate" is used during setup and during feedback evaluation            -->
 <!-- Define an expressions that will be parsed in their math context                -->
@@ -884,13 +850,12 @@
 
 
 <!-- Deal with possibility of global checker for all blanks -->
-<xsl:template name="get-multianswer-check">
+<xsl:template match="evaluation" mode="get-multianswer-check">
     <xsl:variable name="responseTree" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//fillin" />
-    <xsl:if test="count($responseTree) > 1 and ancestor::exercise[@exercise-interactive='fillin-dynamic']//dynamic-evaluation/evaluate[@all='yes']/test">
-        <xsl:variable name="check_all" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//dynamic-evaluation/evaluate[@all='yes']/test" />
-        <xsl:call-template name="build-checker">
-            <xsl:with-param name="test" select="$check_all" />
-        </xsl:call-template>>
+    <xsl:if test="count($responseTree) > 1 and ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate[@all='yes']/test">
+        <xsl:call-template name="create-test">
+            <xsl:with-param name="test" select="ancestor::exercise[@exercise-interactive='fillin-dynamic']//evaluation/evaluate[@all='yes']/test/*" />
+        </xsl:call-template>
     </xsl:if>
 </xsl:template>
 
@@ -929,28 +894,36 @@
     <xsl:param name="curTest" />
     <xsl:param name="submit" />
     <xsl:param name="level" select="0" />
+    <xsl:variable name="actualTest" select="$curTest[name() != 'feedback']"/>
     <xsl:text>    testResults[</xsl:text>
     <xsl:value-of select="$level" />
     <xsl:text>] = </xsl:text>
-    <!-- A test can have an implied equal or an explicit equal -->
-    <!-- At root level, the test might also have a feedback. Skip that. -->
-    <xsl:variable name="actualTest" select="$curTest[name() != 'feedback']"/>
-    <xsl:text>_menv.compareExpressions(</xsl:text>
     <xsl:choose>
-        <!-- An equal element must have two expression children. -->
-        <xsl:when test="name($actualTest) = 'equal'">
-            <xsl:apply-templates select="$actualTest/*[1]" mode="evaluate"/>
-            <xsl:text>, </xsl:text>
-            <xsl:apply-templates select="$actualTest/*[2]" mode="evaluate"/>
+        <xsl:when test="name($actualTest) = 'raw-js'">
+            <xsl:value-of select="$actualTest"/>
         </xsl:when>
-        <!-- An implied equal compares the submitted answer to the given expression. -->
-        <xsl:otherwise>   <!-- Must be expression: #var or #de-term -->
-          <xsl:apply-templates select="$actualTest" mode="evaluate"/>
-          <xsl:text>, </xsl:text>
-          <xsl:value-of select="$submit" />
+        <xsl:otherwise>
+            <!-- A test can have an implied equal or an explicit equal -->
+            <!-- At root level, the test might also have a feedback. Skip that. -->
+            <xsl:text>_menv.compareExpressions(</xsl:text>
+            <xsl:choose>
+                <!-- An equal element must have two expression children. -->
+                <xsl:when test="name($actualTest) = 'equal'">
+                    <xsl:apply-templates select="$actualTest/*[1]" mode="evaluate"/>
+                    <xsl:text>, </xsl:text>
+                    <xsl:apply-templates select="$actualTest/*[2]" mode="evaluate"/>
+                </xsl:when>
+                <!-- An implied equal compares the submitted answer to the given expression. -->
+                <xsl:otherwise>   <!-- Must be expression: #var or #de-term -->
+                <xsl:apply-templates select="$actualTest" mode="evaluate"/>
+                <xsl:text>, </xsl:text>
+                <xsl:value-of select="$submit" />
+                </xsl:otherwise>
+            </xsl:choose>
+            <xsl:text>)</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>);&#xa;</xsl:text>
+    <xsl:text>;&#xa;</xsl:text>
 </xsl:template>
 
 <!-- A test can also be composite involving a combination of logical tests -->
