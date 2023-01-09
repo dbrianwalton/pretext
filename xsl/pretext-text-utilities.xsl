@@ -52,6 +52,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 <xsl:stylesheet
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"
     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:exsl="http://exslt.org/common"
     xmlns:str="http://exslt.org/strings"
     extension-element-prefixes="str"
 >
@@ -840,6 +841,34 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:variable name="sans-return"    select="str:replace($sans-newline,   '&#x0d;', '\r'     )"/>
 
     <xsl:value-of select="$sans-return" />
+</xsl:template>
+
+<xsl:template name="quote-string">
+    <xsl:param name="string" />
+    <xsl:text>"</xsl:text>
+    <xsl:value-of select="$string" />
+    <xsl:text>"</xsl:text>
+</xsl:template>
+
+<xsl:template name="escape-quote-string">
+    <xsl:param name="string" />
+    <xsl:call-template name="quote-string">
+        <xsl:with-param name="string">
+            <xsl:call-template name="escape-json-string">
+                <xsl:with-param name="text" select="$string"/>
+            </xsl:call-template>
+        </xsl:with-param>
+    </xsl:call-template>
+</xsl:template>
+
+<xsl:template name="escape-quote-xml">
+    <xsl:param name="xml_content"/>
+    <xsl:variable name="xml_string">
+        <xsl:apply-templates select="exsl:node-set($xml_content)" mode="serialize"/>
+    </xsl:variable>
+    <xsl:call-template name="escape-quote-string">
+        <xsl:with-param name="string" select="$xml_string"/>
+    </xsl:call-template>
 </xsl:template>
 
 <!-- File Extension -->
