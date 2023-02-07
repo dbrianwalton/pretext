@@ -12,4 +12,4 @@ pretext/__pycache__/**
 **/cli.log
 **/rsbuild
 **/build
-
+.DS_Store
