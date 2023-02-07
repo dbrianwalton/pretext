@@ -407,17 +407,15 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:choose>
         <!-- static, for multiple conversions, but primarily LaTeX -->
         <xsl:when test="$exercise-style = 'static'">
-            <xsl:copy>
-                <xsl:variable name="parent-id">
-                    <xsl:apply-templates select="ancestor::exercise/@xml:id" mode="visible-id" />
-                </xsl:variable>
-                <xsl:variable name="eval-subs" select="document($dynamic-substitutions-file,$original)"/>
-                <xsl:variable name="expression" select="@expr"/>
-                <xsl:variable name="substitution">
-                    <xsl:value-of select="$eval-subs//dynamic-substitution[@id=$parent-id]/eval-subst[@expr=$expression]"/>
-                </xsl:variable>
-                <xsl:value-of select="$substitution"/>
-            </xsl:copy>
+            <xsl:variable name="parent-id">
+                <xsl:apply-templates select="ancestor::exercise/@xml:id" mode="visible-id" />
+            </xsl:variable>
+            <xsl:variable name="eval-subs" select="document($dynamic-substitutions-file,$original)"/>
+            <xsl:variable name="expression" select="@expr"/>
+            <xsl:variable name="substitution">
+                <xsl:value-of select="$eval-subs//dynamic-substitution[@id=$parent-id]/eval-subst[@expr=$expression]"/>
+            </xsl:variable>
+            <xsl:value-of select="$substitution"/>
         </xsl:when>
         <!-- dynamic (aka HTML), needs static previews, server base64, etc, -->
         <!-- so just copy as-is with "webwork-reps" to signal and organize  -->
@@ -428,7 +426,6 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
             </xsl:copy>
         </xsl:otherwise>
     </xsl:choose>
-
 </xsl:template>
 
 <!-- ################### -->

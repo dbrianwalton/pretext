@@ -805,7 +805,7 @@ Book (with parts), "section" at level 3
                         <xsl:apply-templates select="text()|var" />
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:apply-templates select="text()|var|eval|fillin" />
+                        <xsl:apply-templates select="text()|eval|fillin" />
                     </xsl:otherwise>
                 </xsl:choose>
                 <!-- look ahead to absorb immediate clause-ending punctuation   -->

@@ -844,18 +844,18 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 </xsl:template>
 
 <xsl:template name="quote-string">
-    <xsl:param name="string" />
+    <xsl:param name="text" />
     <xsl:text>"</xsl:text>
-    <xsl:value-of select="$string" />
+    <xsl:value-of select="$text" />
     <xsl:text>"</xsl:text>
 </xsl:template>
 
 <xsl:template name="escape-quote-string">
-    <xsl:param name="string" />
+    <xsl:param name="text" />
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string">
+        <xsl:with-param name="text">
             <xsl:call-template name="escape-json-string">
-                <xsl:with-param name="text" select="$string"/>
+                <xsl:with-param name="text" select="$text"/>
             </xsl:call-template>
         </xsl:with-param>
     </xsl:call-template>
@@ -863,11 +863,11 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 
 <xsl:template name="escape-quote-xml">
     <xsl:param name="xml_content"/>
-    <xsl:variable name="xml_string">
+    <xsl:variable name="xml_text">
         <xsl:apply-templates select="exsl:node-set($xml_content)" mode="serialize"/>
     </xsl:variable>
     <xsl:call-template name="escape-quote-string">
-        <xsl:with-param name="string" select="$xml_string"/>
+        <xsl:with-param name="text" select="$xml_text"/>
     </xsl:call-template>
 </xsl:template>
 

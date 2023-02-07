@@ -61,7 +61,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- Modularize lots of Runestone-specific code    -->
 <!-- Likely need not be an "import" (v. "include") -->
 <xsl:import href="./pretext-runestone.xsl"/>
-<xsl:import href="./dynamic-runestone-fitb.xsl"/>
+<xsl:import href="./pretext-runestone-fitb.xsl"/>
 
 <!-- Routines to provide "View Source" annotations on HTML output   -->
 <!-- as a service on the PreTeXt website. NB: we use an "include"   -->

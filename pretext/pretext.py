@@ -979,11 +979,9 @@ def tracer(xml_source, pub_file, stringparams, xmlid_root, dest_dir):
 
 ################################
 #
-#  Dynamic Static Representations
+#  Dynamic Exercise Static Representations
 #
 ################################
-
-
 def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_dir):
     import asyncio  # get_event_loop()
 
@@ -1024,12 +1022,11 @@ def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_d
 
                 # goto page and wait for content to load
                 await page.goto(input_page, wait_until='domcontentloaded')
-
+                await page.wait_for_timeout(1000)
                 # see what Runestone substituted into the expressions
                 xpath = "//div[@id='{}-substitutions']".format(dynamic_exercise)
                 elt = page.locator(xpath)
                 exercise_substitutions = await elt.inner_html()
-                log.info(exercise_substitutions)
 
                 # add this to the XML of all substitutions
                 # redundancies will be present but don't matter
@@ -1129,6 +1126,7 @@ def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_d
 
     # restore working directory
     os.chdir(owd)
+
 
 ################################
 #

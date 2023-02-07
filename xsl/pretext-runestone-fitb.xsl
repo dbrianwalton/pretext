@@ -137,7 +137,7 @@
     </xsl:if>
     <xsl:if test="@name">
         <xsl:call-template name="quote-string">
-            <xsl:with-param name="string" select="@name"/>
+            <xsl:with-param name="text" select="@name"/>
         </xsl:call-template>
         <xsl:text>: </xsl:text>
         <xsl:value-of select="position()-1"/>
@@ -204,7 +204,7 @@
         <xsl:call-template name="setup-postContent"/>
     </xsl:variable>
     <xsl:call-template name="escape-quote-string">
-        <xsl:with-param name="string" select="$js_code"/>
+        <xsl:with-param name="text" select="$js_code"/>
     </xsl:call-template>
 </xsl:template>
 
@@ -226,12 +226,12 @@
     <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
     <xsl:text> = v._menv.addMathObject(</xsl:text>
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="@name"/>
+        <xsl:with-param name="text" select="@name"/>
     </xsl:call-template>
     <xsl:text>, </xsl:text>
     <!-- Get the context of the object here -->
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string">
+        <xsl:with-param name="text">
             <xsl:choose>
                 <!-- Usually use value of @context but in case strings change. -->
                 <xsl:when test="@context='interval' or @context='set'">
@@ -298,7 +298,7 @@
     <!-- First check is for correctness. -->
     <xsl:text>[{"solution_code": </xsl:text>
     <xsl:call-template name="escape-quote-string">
-        <xsl:with-param name="string">
+        <xsl:with-param name="text">
             <xsl:choose>
                 <xsl:when test="string-length($multiAns)>0">
                     <xsl:value-of select="$multiAns"/>
@@ -326,7 +326,7 @@
     <xsl:choose>
         <xsl:when test="$check/test[@correct='yes']/feedback">
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="$check/test[@correct='yes']/feedback"/>
+                <xsl:with-param name="text" select="$check/test[@correct='yes']/feedback"/>
             </xsl:call-template>
         </xsl:when>
         <xsl:otherwise>
@@ -338,7 +338,7 @@
     <xsl:for-each select="$check/test[not(@correct='yes')]">
         <xsl:text>, {"solution_code": </xsl:text>
         <xsl:call-template name="escape-quote-string">
-            <xsl:with-param name="string">
+            <xsl:with-param name="text">
                 <xsl:call-template name="create-test">
                     <xsl:with-param name="submit" select="$curFillIn/@name" />
                     <xsl:with-param name="test" select="*[not(self::feedback)]" />
@@ -350,7 +350,7 @@
         <xsl:choose>
             <xsl:when test="feedback">
                 <xsl:call-template name="quote-string">
-                    <xsl:with-param name="string" select="feedback"/>
+                    <xsl:with-param name="text" select="feedback"/>
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
@@ -365,7 +365,7 @@
         <!-- Allow the problem to define it: feedback with no test   -->
         <xsl:when test="$check/feedback">
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="$check/feedback"/>
+                <xsl:with-param name="text" select="$check/feedback"/>
             </xsl:call-template>
         </xsl:when>
         <!-- Maybe this should be a configurable default???   -->
@@ -564,7 +564,7 @@
             <xsl:value-of select="$prefix"/>
             <xsl:text>_menv.parseExpression(</xsl:text>
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="."/>
+                <xsl:with-param name="text" select="."/>
             </xsl:call-template>
             <xsl:text>, "number")</xsl:text>
         </xsl:when>
@@ -662,7 +662,7 @@
             <xsl:value-of select="$prefix"/>
             <xsl:text>_menv.parseExpression(</xsl:text>
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="."/>
+                <xsl:with-param name="text" select="."/>
             </xsl:call-template>
             <xsl:text>, "formula")</xsl:text>
         </xsl:when>
@@ -686,7 +686,7 @@
             </xsl:apply-templates>
             <xsl:text>.derivative(</xsl:text>
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="variable/@name"/>
+                <xsl:with-param name="text" select="variable/@name"/>
             </xsl:call-template>
             <xsl:text>)</xsl:text>
         </xsl:when>
@@ -717,7 +717,7 @@
         <xsl:text>, </xsl:text>
     </xsl:if>
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="@name" />
+        <xsl:with-param name="text" select="@name" />
     </xsl:call-template>
     <xsl:text>: </xsl:text>
     <xsl:choose>
@@ -738,7 +738,7 @@
     <xsl:param name="rnd-options" />
     <xsl:text>v._menv.generateRandom(</xsl:text>
         <xsl:call-template name="quote-string">
-            <xsl:with-param name="string" select="$rnd-dist"/>
+            <xsl:with-param name="text" select="$rnd-dist"/>
         </xsl:call-template>
         <xsl:text>, </xsl:text>
         <xsl:value-of select="$rnd-options"/>
@@ -759,7 +759,7 @@
     <xsl:value-of select="$prefix"/>
     <xsl:text>_menv.parseExpression(</xsl:text>
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="."/>
+        <xsl:with-param name="text" select="."/>
     </xsl:call-template>
     <xsl:text>).reduce()</xsl:text>
 </xsl:template>
@@ -786,7 +786,7 @@
     <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
     <xsl:text> = v._menv.addMathObject(</xsl:text>
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="@name"/>
+        <xsl:with-param name="text" select="@name"/>
     </xsl:call-template>
     <xsl:text>, "formula", </xsl:text>
     <xsl:apply-templates select="." mode="evaluate">
@@ -800,7 +800,7 @@
     <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
     <xsl:text> = v._menv.addExpression(</xsl:text>
     <xsl:call-template name="quote-string">
-        <xsl:with-param name="string" select="@name"/>
+        <xsl:with-param name="text" select="@name"/>
     </xsl:call-template>
     <xsl:text>, </xsl:text>
     <xsl:apply-templates select="." mode="evaluate">
@@ -988,7 +988,7 @@
     <xsl:choose>
         <xsl:when test="text">
             <xsl:call-template name="quote-string">
-                <xsl:with-param name="string" select="text"/>
+                <xsl:with-param name="text" select="text"/>
             </xsl:call-template>
         </xsl:when>
         <xsl:otherwise>
@@ -1013,7 +1013,7 @@
     <xsl:text>curBoard.create('functiongraph', [&#xa;</xsl:text>
     <xsl:text>function(x){ return formulaObj.evaluate({</xsl:text>
         <xsl:call-template name="quote-string">
-            <xsl:with-param name="string" select="variable/name"/>
+            <xsl:with-param name="text" select="variable/name"/>
         </xsl:call-template>
         <xsl:text>: x</xsl:text>
     <xsl:text>}); },&#xa;</xsl:text>
