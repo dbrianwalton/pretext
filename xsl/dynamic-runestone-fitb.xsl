@@ -20,7 +20,7 @@
 <xsl:template match="exercise[@exercise-interactive='fillin']//fillin">
     <xsl:param name="b-human-readable" />
     <xsl:variable name="parent-id">
-        <xsl:apply-templates select="ancestor::exercise[@exercise-interactive='fillin']" mode="html-id" />
+        <xsl:apply-templates select="ancestor::exercise" mode="html-id" />
     </xsl:variable>
     <xsl:element name="input">
         <xsl:attribute name="types"><xsl:text>text</xsl:text></xsl:attribute>
@@ -216,6 +216,7 @@
         <!-- FUTURE: Pull additional settings from an environment element -->
         <xsl:apply-templates select="de-environment" mode="runestone-setup"/>
     <xsl:text>});&#xa;</xsl:text>
+    <xsl:text>v.toTeX = toTeX;&#xa;</xsl:text>
     <!-- Generate all of the XML-declared math objects -->
     <xsl:apply-templates select="setup/de-object" mode="runestone-setup"/>
 </xsl:template>
@@ -290,7 +291,7 @@
 <xsl:template match="fillin" mode="dynamic-feedback">
     <xsl:param name="multiAns"/>
     <xsl:variable name="curFillIn" select="."/>
-    <xsl:variable name="check" select="ancestor::exercise[@exercise-interactive='fillin']//evaluation/evaluate[@submit = $curFillIn/@name]" />
+    <xsl:variable name="check" select="ancestor::exercise//evaluation/evaluate[@submit = $curFillIn/@name]" />
     <xsl:if test="position() > 1">
         <xsl:text>, </xsl:text>
     </xsl:if>
@@ -305,7 +306,7 @@
                 <xsl:when test="$check/test[@correct='yes']">
                     <xsl:call-template name="create-test">
                         <xsl:with-param name="submit" select="$curFillIn/@name" />
-                        <xsl:with-param name="test" select="$check/test[@correct='yes']/*" />
+                        <xsl:with-param name="test" select="$check/test[@correct='yes']/*[not(self::feedback)]" />
                     </xsl:call-template>
                 </xsl:when>
                 <!-- If no explicit test, must be on the fillin. -->
@@ -340,7 +341,7 @@
             <xsl:with-param name="string">
                 <xsl:call-template name="create-test">
                     <xsl:with-param name="submit" select="$curFillIn/@name" />
-                    <xsl:with-param name="test" select="*" />
+                    <xsl:with-param name="test" select="*[not(self::feedback)]" />
                 </xsl:call-template>
                 <xsl:text>()</xsl:text>
             </xsl:with-param>
@@ -377,10 +378,10 @@
 
 <!-- Deal with possibility of global checker for all blanks -->
 <xsl:template match="evaluation" mode="get-multianswer-check">
-    <xsl:variable name="responseTree" select="ancestor::exercise[@exercise-interactive='fillin']//fillin" />
-    <xsl:if test="count($responseTree) > 1 and ancestor::exercise[@exercise-interactive='fillin']//evaluation/evaluate[@all='yes']/test">
+    <xsl:variable name="responseTree" select="ancestor::exercise//fillin" />
+    <xsl:if test="count($responseTree) > 1 and ancestor::exercise//evaluation/evaluate[@all='yes']/test">
         <xsl:call-template name="create-test">
-            <xsl:with-param name="test" select="ancestor::exercise[@exercise-interactive='fillin']//evaluation/evaluate[@all='yes']/test/*" />
+            <xsl:with-param name="test" select="ancestor::exercise//evaluation/evaluate[@all='yes']/test/*[not(self::feedback)]" />
         </xsl:call-template>
     </xsl:if>
 </xsl:template>
@@ -395,7 +396,7 @@
     <!-- Create a checker function. Initialize a stack of flag variables to track results. -->
     <xsl:text>    var testResults = new Array();&#xa;</xsl:text>
     <xsl:choose>
-        <xsl:when test="count($test[name() != 'feedback']) = 1">
+        <xsl:when test="count($test[not(self::feedback)]) = 1">
             <xsl:call-template name="checker-simple">
                 <xsl:with-param name="submit" select="$submit" />
                 <xsl:with-param name="curTest" select="$test" />
@@ -420,30 +421,48 @@
     <xsl:param name="curTest" />
     <xsl:param name="submit" />
     <xsl:param name="level" select="0" />
-    <xsl:variable name="actualTest" select="$curTest[name() != 'feedback']"/>
-    <xsl:text>    testResults[</xsl:text>
-    <xsl:value-of select="$level" />
-    <xsl:text>] = </xsl:text>
     <xsl:choose>
-        <xsl:when test="name($actualTest) = 'raw-js'">
-            <xsl:value-of select="$actualTest"/>
+        <!-- Test might be coded directly in javascript -->
+        <xsl:when test="name($curTest) = 'raw-js'">
+            <xsl:text>    testResults[</xsl:text>
+            <xsl:value-of select="$level" />
+            <xsl:text>] = </xsl:text>
+            <xsl:value-of select="$curTest"/>
         </xsl:when>
+        <!-- Test might require logic -->
+        <xsl:when test="name($curTest)='and' or name($curTest)='or' or name($curTest)='not'">
+            <xsl:call-template name="checker-layer">
+                <xsl:with-param name="submit" select="$submit" />
+                <xsl:with-param name="tests" select="$curTest/*" />
+                <xsl:with-param name="level" select="$level+1" />
+                <xsl:with-param name="logic" select="name()" /> <!-- Default: All tests at first layer must be true -->
+            </xsl:call-template>
+            <xsl:text>    testResults[</xsl:text>
+            <xsl:value-of select="$level" />
+            <xsl:text>] = testResults[</xsl:text>
+            <xsl:value-of select="$level+1" />
+            <xsl:text>];&#xa;</xsl:text>
+        </xsl:when>
+        <!-- Otherwise simple test -->
         <xsl:otherwise>
             <!-- A test can have an implied equal or an explicit equal -->
             <!-- At root level, the test might also have a feedback. Skip that. -->
+            <xsl:text>    testResults[</xsl:text>
+            <xsl:value-of select="$level" />
+            <xsl:text>] = </xsl:text>
             <xsl:text>_menv.compareExpressions(</xsl:text>
             <xsl:choose>
                 <!-- An equal element must have two expression children. -->
-                <xsl:when test="name($actualTest) = 'equal'">
-                    <xsl:apply-templates select="$actualTest/*[1]" mode="evaluate"/>
+                <xsl:when test="name($curTest) = 'equal'">
+                    <xsl:apply-templates select="$curTest/*[1]" mode="evaluate"/>
                     <xsl:text>, </xsl:text>
-                    <xsl:apply-templates select="$actualTest/*[2]" mode="evaluate"/>
+                    <xsl:apply-templates select="$curTest/*[2]" mode="evaluate"/>
                 </xsl:when>
                 <!-- An implied equal compares the submitted answer to the given expression. -->
                 <xsl:otherwise>   <!-- Must be expression: #var or #de-term -->
-                <xsl:apply-templates select="$actualTest" mode="evaluate"/>
-                <xsl:text>, </xsl:text>
-                <xsl:value-of select="$submit" />
+                    <xsl:apply-templates select="$curTest" mode="evaluate"/>
+                    <xsl:text>, </xsl:text>
+                    <xsl:value-of select="$submit" />
                 </xsl:otherwise>
             </xsl:choose>
             <xsl:text>)</xsl:text>
@@ -507,21 +526,21 @@
                 </xsl:call-template>
             </xsl:otherwise>
         </xsl:choose>
+        <xsl:choose> <!-- Deal with the results of that recursive call to a deeper layer. -->
+            <xsl:when test="$logic = 'and'">
+                <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
+                <xsl:text>] &amp;= testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
+            </xsl:when>
+            <xsl:when test="$logic = 'or'">
+                <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
+                <xsl:text>] |= testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
+            </xsl:when>
+            <xsl:when test="$logic = 'not'">
+                <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
+                <xsl:text>] = !(testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>]);&#xa;</xsl:text>
+            </xsl:when>
+        </xsl:choose>
     </xsl:for-each>
-    <xsl:choose> <!-- Deal with the results of that recursive call to a deeper layer. -->
-        <xsl:when test="$logic = 'and'">
-            <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] &amp;= testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
-        </xsl:when>
-        <xsl:when test="$logic = 'or'">
-            <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] |= testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>];&#xa;</xsl:text>
-        </xsl:when>
-        <xsl:when test="$logic = 'not'">
-            <xsl:text>    testResults[</xsl:text><xsl:value-of select="$level" />
-            <xsl:text>] = !(testResults[</xsl:text><xsl:value-of select="$level+1" /><xsl:text>]);&#xa;</xsl:text>
-        </xsl:when>
-    </xsl:choose>
 </xsl:template>
 
 
@@ -796,7 +815,7 @@
 <!-- of a dynamic problem. -->
 <!-- =============================================== -->
 
-<xsl:template match="dynamic-graph" mode="body">
+<xsl:template match="dynamic-graph[@mode='jsxgraph']" mode="body">
     <xsl:variable name="width">
         <xsl:choose>
             <xsl:when test="@width">
@@ -817,9 +836,13 @@
             </xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
+    <xsl:variable name="parent-id">
+        <xsl:apply-templates select="ancestor::exercise" mode="html-id" />
+    </xsl:variable>
     <div class="jxgbox">
         <xsl:attribute name="id">
-            <xsl:text>[%=divid%]-</xsl:text>
+            <xsl:value-of select="$parent-id"/>
+            <xsl:text>-</xsl:text>
             <xsl:value-of select="@sub-id"/>
         </xsl:attribute>
         <xsl:attribute name="style">
@@ -833,7 +856,7 @@
     </div>
 </xsl:template>
 
-<xsl:template match="dynamic-graph" mode="runestone-setup">
+<xsl:template match="dynamic-graph[@mode='jsxgraph']" mode="runestone-setup">
     <xsl:variable name="board-id">
         <xsl:value-of select="@sub-id"/>
     </xsl:variable>

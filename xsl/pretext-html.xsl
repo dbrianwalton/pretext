@@ -210,7 +210,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <xsl:variable name="b-has-sfrac"        select="boolean($document-root//m[contains(text(),'sfrac')]|$document-root//md[contains(text(),'sfrac')]|$document-root//me[contains(text(),'sfrac')]|$document-root//mrow[contains(text(),'sfrac')])"/>
 <xsl:variable name="b-has-geogebra"     select="boolean($document-root//interactive[@platform='geogebra'])"/>
 <!-- 2018-04-06:  jsxgraph deprecated -->
-<xsl:variable name="b-has-jsxgraph"     select="boolean($document-root//jsxgraph)"/>
+<xsl:variable name="b-has-jsxgraph"     select="boolean($document-root//jsxgraph | $document-root//dynamic-graph[@mode='jsxgraph'])"/>
 <xsl:variable name="b-dynamics-static-seed" select="false()"/>
 <!-- Every page has an index button, with a link to the index -->
 <!-- Here we assume there is at most one                      -->
