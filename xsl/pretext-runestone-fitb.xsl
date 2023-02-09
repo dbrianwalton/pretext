@@ -563,7 +563,7 @@
         <xsl:when test="@mode='value' or @mode='formula'">
             <xsl:value-of select="$prefix"/>
             <xsl:text>_menv.parseExpression(</xsl:text>
-            <xsl:call-template name="quote-string">
+            <xsl:call-template name="quote-strip-string">
                 <xsl:with-param name="text" select="."/>
             </xsl:call-template>
             <xsl:text>, "number")</xsl:text>
@@ -578,7 +578,7 @@
                 <xsl:apply-templates select="variable" mode="evaluation-binding" >
                     <xsl:with-param name="setupMode" select="$setupMode" />
                 </xsl:apply-templates>
-            <xsl:text>.value()}).reduce()</xsl:text>
+            <xsl:text>}).reduce()</xsl:text>
         </xsl:when>
         <xsl:when test="@mode='random'">
             <!-- Different types of random number generation -->
@@ -661,7 +661,7 @@
         <xsl:when test="@mode='formula'">
             <xsl:value-of select="$prefix"/>
             <xsl:text>_menv.parseExpression(</xsl:text>
-            <xsl:call-template name="quote-string">
+            <xsl:call-template name="quote-strip-string">
                 <xsl:with-param name="text" select="."/>
             </xsl:call-template>
             <xsl:text>, "formula")</xsl:text>
@@ -758,7 +758,7 @@
     </xsl:variable>
     <xsl:value-of select="$prefix"/>
     <xsl:text>_menv.parseExpression(</xsl:text>
-    <xsl:call-template name="quote-string">
+    <xsl:call-template name="quote-strip-string">
         <xsl:with-param name="text" select="."/>
     </xsl:call-template>
     <xsl:text>).reduce()</xsl:text>

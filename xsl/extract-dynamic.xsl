@@ -63,7 +63,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 <!-- with an indication that the exercise uses the  -->
 <!-- static seed.  Results are HTML files           -->
 <!-- (despite this stylesheet having text output).  -->
-<xsl:template match="exercise[./setup]" mode="extraction">
+<xsl:template match="exercise[@exercise-interactive = 'fillin' and ./setup]" mode="extraction">
     <xsl:apply-templates select="." mode="visible-id" />
     <xsl:text>&#xa;</xsl:text>
     <!-- (2) Identical content, but now isolated on a reader-friendly page -->
