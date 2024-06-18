@@ -91,6 +91,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         \usetikzlibrary{arrows,matrix}
         \usetikzlibrary{positioning}        % for Dave R's worksheet
         \usepackage{circuitikz}             % for Virgil P's worksheet
+        \usepackage{nicematrix}             % for multi-run latex-image (label="latex-three-pass")
         </latex-image-preamble>
         <!--
         The Sage Notebook has its own interface and worksheet list.
@@ -3156,6 +3157,30 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                                     \addplot[only marks] coordinates {(1,5) (2,3) (3,8) (4,9) (5,5) (6,5) (7,8) (8,2) (9,3)};
                                 \end{axis}
                             \end{tikzpicture}
+                        </latex-image>
+                    </image>
+                </figure>
+
+                <p>The next image requires three passes with <latex/> to get everything in place.  It is placed here to test that the code in the Pythion script correctly recognizes this requirement.</p>
+
+                <figure>
+                    <caption>A matrix with colored entries</caption>
+
+                    <!-- This image needs three passes with LaTeX, which -->
+                    <!-- is supported by the script making this image    -->
+                    <image width="50%">
+                        <latex-image label="latex-three-pass">
+                            \begin{tikzpicture}
+                            \node{
+                                $\begin{bNiceArray}{ccc|cc}[
+                                code-before={\cellcolor{green!72}{1-1,2-2,3-3}\cellcolor{teal!72}{1-2,2-3,3-4}\cellcolor{yellow!72}{1-3,2-4,3-5}}
+                                ]
+                                3 \amp 4 \amp 0 \amp 1 \amp 4 \\
+                                -2 \amp 3 \amp 1 \amp -2 \amp 3 \\
+                                0 \amp 2 \amp 1 \amp 0 \amp 2
+                                \end{bNiceArray}$
+                            };
+                        \end{tikzpicture}
                         </latex-image>
                     </image>
                 </figure>
@@ -7528,28 +7553,6 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                     <p>Note that the <init>HTML</init> that is output can vary slightly from your source in small, harmless ways, such as empty (self-closing) elements being output with both an opening and a closing tag.  Please report any significant discrepancies.  Soon this requirement will be enforced in the code.</p>
                 </warning>
 
-                <p>The following example was contributed by Rick Roesler. The <tag>figure</tag> is comprised of four <tag>stack</tag> elements within a <tag>sidebyside</tag>. By varying the time in the top box, the reader can observe the displacement, velocity, and acceleration of a ball thrown upward with an initial velocity of 30 m/s.</p>
-
-                <figure>
-                    <caption>1-Dimensional Kinematics</caption>
-                    <interactive xml:id="kinematics" platform="jsxgraph" aspect="6:7" source="code/roesler/kinematics.js">
-                        <sidebyside width="70%" margins="15%">
-                            <stack>
-                                <slate xml:id="box_t" surface="jsxboard" aspect="6:1" />
-                                <slate xml:id="box_s" surface="jsxboard" aspect="6:3" />
-                                <slate xml:id="box_v" surface="jsxboard" aspect="6:3" />
-                                <slate xml:id="box_a" surface="jsxboard" aspect="6:3" />
-                            </stack>
-                        </sidebyside>
-                        <instructions xml:id="kinematics-instructions">
-                            <p>Use the time slider in the top panel to vary the time from 0 sec to 6 sec. Observe how the displacement, velocity, and acceleration vary with time.</p>
-                        </instructions>
-                        <static>
-                            <image source="images/kinematics.png" width="60%"/>
-                        </static>
-                    </interactive>
-                </figure>
-
                 <p>It is also possible to add <tag>script</tag> elements within an interactive that contain properly escaped JS code. These elements will be placed at the end of the document created to hold the interactive content and can interactive with the other elements within the interactive but can not directly interact with the surrounding page.</p>
 
                 <p>Authors are strongly discouraged from trying to incorporate complex code in the form of a <tag>script</tag>, but it can be a useful tool to call more complex code that is linked via <attr>source</attr> on the <tag>interactive</tag>.</p>
@@ -7730,6 +7733,28 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <p><url href="http://jsxgraph.uni-bayreuth.de/wp/index.html" visual="jsxgraph.uni-bayreuth.de">JSXGraph</url> is a <q>cross-browser JavaScript library for interactive geometry, function plotting, charting, and data visualization in the web browser.</q>  Now a <tag>slate</tag> will be what JSXGraph calls a <term>board</term>.  Again, you use Javascript to write onto a <tag>slate</tag>, but have some powerful shortcuts available from the JSXGraph library.  For this reason, <pretext /> calls JSXGraph a <q>language</q>, similar in may respects to how Sage is a language, but is really a Python library.  So realize that the syntax for using JSXGraph is that of Javascript.</p>
 
                 <p>Place Javascript inside a file that is specified with the <attr>source</attr> attribute of the <tag>interactive</tag> element.  Then just be certain that <attr>xml:id</attr> of the <tag>interactive</tag> element is passed as the <init>HTML</init> <c>id</c> in an (early) call to JSXGraph's <c>initBoard()</c> method.</p>
+
+                <p>The following example was contributed by Rick Roesler. The <tag>figure</tag> is comprised of four <tag>stack</tag> elements within a <tag>sidebyside</tag>. By varying the time in the top box, the reader can observe the displacement, velocity, and acceleration of a ball thrown upward with an initial velocity of 30 m/s.</p>
+
+                <figure>
+                    <caption>1-Dimensional Kinematics</caption>
+                    <interactive xml:id="kinematics" platform="jsxgraph" aspect="6:7" source="code/roesler/kinematics.js">
+                        <sidebyside width="70%" margins="15%">
+                            <stack>
+                                <slate xml:id="box_t" surface="jsxboard" aspect="6:1" />
+                                <slate xml:id="box_s" surface="jsxboard" aspect="6:3" />
+                                <slate xml:id="box_v" surface="jsxboard" aspect="6:3" />
+                                <slate xml:id="box_a" surface="jsxboard" aspect="6:3" />
+                            </stack>
+                        </sidebyside>
+                        <instructions xml:id="kinematics-instructions">
+                            <p>Use the time slider in the top panel to vary the time from 0 sec to 6 sec. Observe how the displacement, velocity, and acceleration vary with time.</p>
+                        </instructions>
+                        <static>
+                            <image source="images/kinematics.png" width="60%"/>
+                        </static>
+                    </interactive>
+                </figure>
 
                 <p>The plot below is the curve <m>r=a+b\theta</m> in polar coordinates, for <m>0\leq\theta\leq 8\pi</m>.  It may be manipulated with the sliders to control the shape of the curve.  Point <m>A</m> is contrained to the curve, but may be dragged to a new location. At <m>A</m> the tangent line and normal line are plotted as dashed red lines.  Use the controls in the lower left to adjust the viewing window.  This <url href="http://jsxgraph.uni-bayreuth.de/wiki/index.php/Archimedean_spiral" visual="jsxgraph.uni-bayreuth.de/wiki/index.php/Archimedean_spiral">Archimedean Spiral</url> is taken from the <url href="http://jsxgraph.uni-bayreuth.de/wiki/index.php/Category:Examples" visual="jsxgraph.uni-bayreuth.de/wiki/index.php/Category:Examples">JSXGraph example wiki</url>.  The code could be written in 7 lines.  Width is 80% and aspect ratio is 4:3.</p>
 
@@ -8147,6 +8172,91 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                     <caption><c>threejs</c> saddle by Sage</caption>
                     <interactive xml:id="interactive-threejs-saddle" platform="javascript" width="85%" aspect="1:1" source="https://cdn.jsdelivr.net/gh/sagemath/threejs-sage@r122/build/three.min.js code/threejs/saddle.js">
                         <slate xml:id="threejs-saddle" surface="div" aspect="1:1" />
+                    </interactive>
+                </figure>
+
+            </subsection>
+
+            <subsection xml:id="interactive-doenetml">
+                <title>DoenetML</title>
+
+                <p>
+                    <url href="https://doenet.org">DoenetML</url> is a markup language
+                    inspired by <pretext/> for semantically describing interactive
+                    mathematics applets for the web. Use
+                    <c>interactive[@platform="doenetml"]</c> with a
+                    <c>slate[@surface="doenetml"]</c> to include DoenetML content
+                    within your document.
+                </p>
+                <p>
+                    Since DoenetML is similar to,
+                    but not completely compatible with, XML, it cannot be authored
+                    directly within a PreTeXt document without painstakingly escaping
+                    every <c>&lt;</c> as <c>&amp;lt;</c> and every <c>&amp;</c>
+                    as <c>&amp;amp;</c>. However, a convenient workflow to avoid this
+                    is to author your DoenetML in a separate file like
+                    <c>example.doenetml</c>, then include this file
+                    within your <pretext/> document using
+                    <c>&lt;xi:include parse="text" src="path/to/example.doenetml"/&gt;</c>.
+                </p>
+
+                <figure xml:id="figure-doenetml">
+                    <caption>DoenetML example</caption>
+                    <!-- 2024-04-25: This exact interactive appears in the sample book, for testing on Rynestone. -->
+                    <!-- A @label is preferred, since it is required for use on Runestone -->
+                    <interactive label="interactive-doenetml-example" platform="doenetml" width="100%" aspect="3:2">
+                        <slate surface="doenetml">
+                            &lt;p&gt;
+                            Adjust the vectors &lt;m&gt;\vec u&lt;/m&gt;, &lt;m&gt;\vec v&lt;/m&gt;, and &lt;m&gt;\vec w&lt;/m&gt; in the
+                            left graph to visualize the areas calculated by
+                            &lt;m&gt;\det[\vec u\hspace{0.5em}\vec w]&lt;/m&gt;, &lt;m&gt;\det[\vec v\hspace{0.5em}\vec w]&lt;/m&gt;,
+                            and
+                            &lt;m&gt;\det[\vec u+\vec v\hspace{0.5em}\vec w]&lt;/m&gt;.
+                          &lt;/p&gt;
+                          &lt;setup&gt;&lt;line through=&quot;(0,0) $v&quot; name=&quot;vLine&quot;/&gt;&lt;math simplify  name=&quot;c&quot;&gt;$cv.x/$v.x&lt;/math&gt;&lt;/setup&gt;
+                          &lt;sideBySide&gt;
+                            &lt;graph xmin=&quot;-4&quot; ymin=&quot;-4&quot; xmax=&quot;16&quot; ymax=&quot;16&quot;&gt;
+                              &lt;m draggable=&quot;false&quot; anchor=&quot;(10,14)&quot;&gt;
+                                \det[\vec u\hspace{0.5em}\vec w],
+                                \det[\vec v\hspace{0.5em}\vec w]
+                              &lt;/m&gt;
+                              &lt;point name=&quot;u&quot; styleNumber=&quot;3&quot;&gt;
+                                (6,2)
+                                &lt;label&gt;&lt;m&gt;\vec u&lt;/m&gt;&lt;/label&gt;
+                              &lt;/point&gt;
+                              &lt;point name=&quot;w&quot; styleNumber=&quot;3&quot;&gt;
+                                (3,7)
+                                &lt;label&gt;&lt;m&gt;\vec w&lt;/m&gt;&lt;/label&gt;
+                              &lt;/point&gt;
+                              &lt;point name=&quot;uPlusV&quot; styleNumber=&quot;4&quot;&gt;
+                                (9,5)
+                                &lt;label&gt;&lt;m&gt;\vec v&lt;/m&gt;&lt;/label&gt;
+                              &lt;/point&gt;
+                              &lt;polygon vertices=&quot;(0,0) $u $u+$w $w&quot; filled draggable=&quot;false&quot; styleNumber=&quot;3&quot;/&gt;
+                              &lt;polygon vertices=&quot;$u $uPlusV $uPlusV+$w $u+$w&quot; filled draggable=&quot;false&quot; styleNumber=&quot;4&quot;/&gt;
+                              &lt;lineSegment endpoints=&quot;(0,0) $uPlusV&quot; styleNumber=&quot;6&quot;/&gt;
+                              &lt;lineSegment endpoints=&quot;$w $uPlusV+$w&quot; styleNumber=&quot;6&quot;/&gt;
+                            &lt;/graph&gt;
+                            &lt;graph xmin=&quot;-4&quot; ymin=&quot;-4&quot; xmax=&quot;16&quot; ymax=&quot;16&quot;&gt;
+                              &lt;m draggable=&quot;false&quot; anchor=&quot;(12,14)&quot;&gt;
+                                \det[\vec u+\vec v\hspace{0.5em}\vec w]
+                              &lt;/m&gt;
+                              &lt;polygon vertices=&quot;(0,0) $uPlusV $uPlusV+$w $w&quot; filled draggable=&quot;false&quot; styleNumber=&quot;2&quot;/&gt;
+                              &lt;point draggable=&quot;false&quot; styleNumber=&quot;3&quot;&gt;
+                                $w
+                                &lt;label&gt;&lt;m&gt;\vec w&lt;/m&gt;&lt;/label&gt;
+                              &lt;/point&gt;
+                              &lt;point draggable=&quot;false&quot; styleNumber=&quot;4&quot;&gt;
+                                $uPlusV
+                                &lt;label&gt;&lt;m&gt;\vec u+\vec v&lt;/m&gt;&lt;/label&gt;
+                              &lt;/point&gt;
+                              &lt;lineSegment endpoints=&quot;(0,0) $u&quot; styleNumber=&quot;6&quot;/&gt;
+                              &lt;lineSegment endpoints=&quot;$u $uPlusV&quot; styleNumber=&quot;6&quot;/&gt;
+                              &lt;lineSegment endpoints=&quot;$w $w+$u&quot; styleNumber=&quot;6&quot;/&gt;
+                              &lt;lineSegment endpoints=&quot;$w+$u $w+$uPlusV&quot; styleNumber=&quot;6&quot;/&gt;
+                            &lt;/graph&gt;
+                          &lt;/sideBySide&gt;
+                        </slate>
                     </interactive>
                 </figure>
 
@@ -9276,6 +9386,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
                 <!-- Instructions for Interactives are not numbered, so use a simpler @text -->
                 <li><p>Cross-reference to <tag>instructions</tag> of an <tag>interactive</tag>: <xref ref="kinematics-instructions" text="title"/></p></li>
                 <li><p>A hyperlink to a <tag>subexercises</tag> via its required title (no number is assigned): <xref ref="hard-subexercises" text="title"/></p></li>
+                <li><p>You can request the text to be a type, then a number, then a title: <xref ref="theorem-FTC" text="type-global-title"/></p></li>
+                <li><p>Asking for the text to be a type, then a number, then a title, when there is no title, is not a problem: <xref ref="corollary-FTC-derivative" text="type-local-title"/></p></li>
                 <!-- Accumulate examples here -->
                 <!-- <li><p>: <xref ref="" text=""/></p></li> -->
             </ul></p>

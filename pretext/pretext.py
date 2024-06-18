@@ -326,7 +326,7 @@ def asymptote_conversion(
                 # 2021-12-10, Michael Doob: "-noprc" is default for the server,
                 # and newer CLI versions.  Retain for explicit use locally when
                 # perhaps an older version is being employed
-                asy_cli = asy_executable_cmd + ["-f", outform]
+                asy_cli = asy_executable_cmd + ["-f", outform, "-noV"]
                 if outform in ["pdf", "eps"]:
                     asy_cli += ["-noprc", "-iconify", "-tex", "xelatex", "-batchMask"]
                 elif outform in ["svg", "png"]:
@@ -488,6 +488,7 @@ def latex_image_conversion(
                 latex_image_svg = "{}.svg".format(filebase)
                 latex_image_png = "{}.png".format(filebase)
                 latex_image_eps = "{}.eps".format(filebase)
+                latex_image_log = "{}.log".format(filebase)
                 # process with a  latex  engine
                 latex_key = get_deprecated_tex_fallback(method)
                 tex_executable_cmd = get_executable_cmd(latex_key)
@@ -499,6 +500,24 @@ def latex_image_conversion(
                 # "result" is a "CompletedProcess" object.  Specifying an encoding
                 # causes captured output to be a string, which is convenient.
                 result = subprocess.run(latex_cmd, stdout=subprocess.PIPE, encoding="utf-8")
+
+                # It may be that the image needs to be compiled twice. If the .log file contains
+                # the string `Rerun to get`, then the document should be compiled again.
+
+                # We keep track of how many times we've tried to compile the document and
+                # bail if it looks like we're stuck in a loop.
+                loop_count = 0
+                MAX_LOOPS = 10
+                while result.returncode == 0 and "Rerun to get" in open(latex_image_log).read() and loop_count < MAX_LOOPS:
+                    msg = "File {} needs to be processed with LaTeX again. Rerunning LaTeX for pass number {}."
+                    log.info(msg.format(latex_image, loop_count + 2))
+                    result = subprocess.run(latex_cmd, stdout=subprocess.PIPE, encoding="utf-8")
+                    loop_count += 1
+
+                if loop_count == MAX_LOOPS:
+                    log.error("Detected infinite loop while compiling {}. Aborting.".format(latex_image))
+                    result.returncode = 1
+
                 if result.returncode != 0:
                     # failed
                     failed_images.append(latex_image)
@@ -563,7 +582,7 @@ def latex_image_conversion(
                             with open(latex_image_svg, "w") as f:
                                 f.write(svg)
                             shutil.copy2(latex_image_svg, dest_dir)
-                            # clasic way to produce svg, using pdf2svg:
+                            # classic way to produce svg, using pdf2svg:
                             latex_image_svg = "classic-" + latex_image_svg
                         pdfsvg_executable_cmd = get_executable_cmd("pdfsvg")
                         # TODO why this debug line? get_executable_cmd() outputs the same debug info
@@ -4122,7 +4141,7 @@ def get_temporary_directory():
 
     global __temps  #  cache of temporary directories
 
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tempfile.mkdtemp(prefix="ptx-")
     # Register the directory for cleanup at the end of successful
     # execution iff the verbosity is set to level 2 ("debug")
     # So errors, or requesting gross debugging info, will leave the
@@ -4280,12 +4299,12 @@ def copy_managed_directories(build_dir, external_abs=None, generated_abs=None):
 
 
 def copy_html_css_js(work_dir):
-    '''Copy necessary CSS and JS into working directory'''
+    '''Copy all necessary CSS and JS into working directory'''
 
-    # Place support files where expected
-    # 2024-01-18: overkill for CSS, could be slimmed with knowledge
-    # of *which* files are needed.  Though maybe we will have
-    # on-the-fly changes initiated by readers?
+    # Place support files where expected.
+    # We are not careful about placing files that are not used/necessary.
+    # In particular, all CSS themes are present for the situation where
+    # the reader can choose/switch themes on-the-fly.
     css_src = os.path.join(get_ptx_path(), "css")
     css_dest = os.path.join(work_dir, "_static", "pretext", "css")
     shutil.copytree(css_src, css_dest)

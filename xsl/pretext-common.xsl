@@ -202,8 +202,20 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!-- use this to distinguish one document from another.  -->
 <!-- The global variable here is empty to signal         -->
 <!-- "no choice" by the author.                          -->
+<!-- NB: at some point this should be specified as an    -->
+<!-- attribute, rather than as content, which would make -->
+<!-- things like newlines less likely to appear.  Much   -->
+<!-- as "doucment-id/@edition" is given.  Keep the       -->
+<!-- normalizationcan, it just becomes less necessary.   -->
 <xsl:variable name="document-id">
-    <xsl:value-of select="$docinfo/document-id"/>
+    <xsl:value-of select="normalize-space($docinfo/document-id)"/>
+</xsl:variable>
+
+<!-- And an edition is critical for maintaing the -->
+<!-- Runestone database, though it may have other -->
+<!-- uses related to maintaining changes.         -->
+<xsl:variable name="edition">
+    <xsl:value-of select="normalize-space($docinfo/document-id/@edition)"/>
 </xsl:variable>
 
 <!-- The new version can return to the generic version  -->
@@ -3646,7 +3658,7 @@ Book (with parts), "section" at level 3
 <!-- PreTeXt "exercise" HTML id.  And we will require a *stable* @label   -->
 <!-- from an author, which we will dress up here.  Notice that this can   -->
 <!-- change when an author declares a new edition.                        -->
-<xsl:template match="exercise|program|datafile|&PROJECT-LIKE;|task|video[@youtube]|exercises" mode="runestone-id">
+<xsl:template match="exercise|program|datafile|query|&PROJECT-LIKE;|task|video[@youtube]|exercises|interactive[@platform = 'doenetml']" mode="runestone-id">
     <!-- With no @xml:id and no @label we realize the author has not given    -->
     <!-- any thought to a (semi-)peersistent identifire for the Runestone     -->
     <!-- database.  So we call that out as an error.  And we do not even      -->
@@ -3693,9 +3705,10 @@ Book (with parts), "section" at level 3
     <!-- Prefix just for RS server builds, in order that the database -->
     <!-- of exercises gets a globally unique identifier.              -->
     <xsl:if test="$b-host-runestone">
-        <xsl:value-of select="$docinfo/document-id"/>
+        <!-- global variables defined in this stylesheet -->
+        <xsl:value-of select="$document-id"/>
         <xsl:text>_</xsl:text>
-        <xsl:value-of select="$docinfo/document-id/@edition"/>
+        <xsl:value-of select="$edition"/>
         <xsl:text>_</xsl:text>
     </xsl:if>
     <!-- We require a @label attribute, but allow it to be -->
@@ -8194,6 +8207,13 @@ Book (with parts), "section" at level 3
         <xsl:when test="@text='type-hybrid'">
             <xsl:text>type-hybrid</xsl:text>
         </xsl:when>
+        <xsl:when test="@text='type-global-title'">
+            <xsl:text>type-global-title</xsl:text>
+        </xsl:when>
+        <xsl:when test="@text='type-local-title'">
+            <xsl:text>type-local-title</xsl:text>
+        </xsl:when>
+        <!-- no 'type-hybrid-title' yet -->
         <xsl:when test="@text='phrase-global'">
             <xsl:text>phrase-global</xsl:text>
         </xsl:when>
@@ -8239,6 +8259,13 @@ Book (with parts), "section" at level 3
         <xsl:when test="$xref-text-style='type-hybrid'">
             <xsl:text>type-hybrid</xsl:text>
         </xsl:when>
+        <xsl:when test="$xref-text-style='type-global-title'">
+            <xsl:text>type-global-title</xsl:text>
+        </xsl:when>
+        <xsl:when test="$xref-text-style='type-local-title'">
+            <xsl:text>type-local-title</xsl:text>
+        </xsl:when>
+        <!-- no 'type-hybrid-title' yet -->
         <xsl:when test="$xref-text-style='phrase-global'">
             <xsl:text>phrase-global</xsl:text>
         </xsl:when>
@@ -8344,7 +8371,7 @@ Book (with parts), "section" at level 3
             </xsl:if>
         </xsl:otherwise>
     </xsl:choose>
-    <!-- Start massive "choose" for exceptions and ten general styles -->
+    <!-- Start massive "choose" for exceptions and twelve general styles -->
     <xsl:choose>
         <xsl:when test="$b-is-contributor-target">
             <xsl:apply-templates select="$target/personname" />
@@ -8433,6 +8460,40 @@ Book (with parts), "section" at level 3
                     <xsl:apply-templates select="$target" mode="serial-number" />
                 </xsl:otherwise>
             </xsl:choose>
+        </xsl:when>
+        <xsl:when test="($text-style = 'type-global-title') or ($text-style = 'type-local-title')">
+            <xsl:choose>
+                <!-- content override of type-prefix -->
+                <xsl:when test="$b-has-content">
+                    <xsl:copy-of select="$custom-text" />
+                </xsl:when>
+                <!-- usual, default case -->
+                <xsl:otherwise>
+                    <xsl:apply-templates select="$target" mode="type-name" />
+                </xsl:otherwise>
+            </xsl:choose>
+            <xsl:apply-templates select="." mode="xref-text-separator"/>
+            <!-- only difference in behavior is global/local number -->
+            <xsl:choose>
+                <xsl:when test="$text-style = 'type-global-title'">
+                    <xsl:apply-templates select="$target" mode="xref-number">
+                        <xsl:with-param name="xref" select="." />
+                    </xsl:apply-templates>
+                </xsl:when>
+                <xsl:when test="$text-style = 'type-local-title'">
+                    <xsl:apply-templates select="$target" mode="serial-number"/>
+                </xsl:when>
+                <xsl:otherwise/>
+            </xsl:choose>
+            <xsl:variable name="the-title">
+                <xsl:apply-templates select="$target" mode="title-xref"/>
+            </xsl:variable>
+            <!-- no title, no problem -->
+            <xsl:if test="not($the-title = '')">
+                <xsl:apply-templates select="." mode="xref-text-separator"/>
+                <!-- title might have markup (eg math in HTML), so copy -->
+                <xsl:copy-of select="$the-title"/>
+            </xsl:if>
         </xsl:when>
         <!-- special case for phrase options and list items of anonymous lists        -->
         <!-- catch this first and provide no text at all (could provide busted text?) -->

@@ -6319,7 +6319,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <details class="image-description" aria-live="polite">
             <summary title="details">
                 <xsl:call-template name="insert-symbol">
-                    <xsl:with-param name="name" select="'description'"/>
+                    <xsl:with-param name="name" select="'info'"/>
                 </xsl:call-template>
             </summary>
             <div>
@@ -9410,6 +9410,12 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
     <xsl:apply-templates select="." mode="runestone-to-interactive"/>
 </xsl:template>
 
+<!-- Queries -->
+
+<xsl:template match="query">
+    <xsl:apply-templates select="." mode="runestone-to-interactive"/>
+</xsl:template>
+
 <!-- Console Session -->
 <!-- An interactive command-line session with a prompt, input and output -->
 <xsl:template match="console" mode="code-inclusion">
@@ -9479,7 +9485,23 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 <!--   2.  An iframe, via modal-template   -->
 <xsl:template match="interactive" mode="interactive-core">
     <!-- An iframe first -->
-    <xsl:apply-templates select="." mode="iframe-interactive" />
+    <xsl:choose>
+        <!-- A DoenetML interactive lives two lives.  Plain 'ol PreTeXt,  -->
+        <!-- supported by a Doenet CDN for its interactivity.  But when   -->
+        <!-- hosted on Runestone it can communicate its results.  So it   -->
+        <!-- needs surrounding infrastructure, in part to hold an id.     -->
+        <xsl:when test="(@platform = 'doenetml') and $b-host-runestone">
+            <div class="ptx-runestone-container">
+                <div data-component="doenet">
+                    <xsl:apply-templates select="." mode="runestone-id-attribute"/>
+                    <xsl:apply-templates select="." mode="iframe-interactive"/>
+                </div>
+            </div>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:apply-templates select="." mode="iframe-interactive"/>
+        </xsl:otherwise>
+    </xsl:choose>
     <!-- "instructions" next, *always* as a knowl -->
     <!-- "title" is handled in knowl creation     -->
     <!-- div.solutions is good, but replacable?   -->
@@ -9784,8 +9806,8 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
 
 <!-- JSXGraph header libraries -->
 <xsl:template match="interactive[@platform = 'jsxgraph']" mode="header-libraries">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.6/jsxgraph.css" />
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/0.99.6/jsxgraphcore.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/1.8.0/jsxgraph.css" />
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsxgraph/1.8.0/jsxgraphcore.js"></script>
 </xsl:template>
 
 <!-- D3.js header libraries -->
@@ -9804,6 +9826,15 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
         <xsl:text>.min.js</xsl:text>
     </xsl:variable>
     <script src="{$d3-library-url}"></script>
+</xsl:template>
+
+<!-- DoenetML header libraries -->
+<xsl:template match="interactive[@platform = 'doenetml']" mode="header-libraries">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/doenet-standalone-test@0.6.0/dist/style.css" />
+    <script onload="onLoad()" type="module" src="https://cdn.jsdelivr.net/npm/doenet-standalone-test@0.6.0/dist/doenet-standalone.min.js"></script>
+    <script>
+        <xsl:text>function onLoad() {window.renderDoenetToContainer(document.querySelector(".doenetml-applet"))}</xsl:text>
+    </script>
 </xsl:template>
 
 <!-- Javascript header libraries (none) -->
@@ -10099,6 +10130,18 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
           </xsl:element>
       </xsl:when>
   </xsl:choose>
+</xsl:template>
+
+<xsl:template match="slate[@surface = 'doenetml']">
+    <div class="doenetml-applet">
+        <div class="doenetml-loading" style="text-align:center">
+            <p><img src="https://www.doenet.org/Doenet_Logo_Frontpage.png"/></p>
+            <p><xsl:text>Waiting on the page to load...</xsl:text></p>
+        </div>
+        <script type="text/doenetml">
+            <xsl:value-of select="text()"/>
+        </script>
+    </div>
 </xsl:template>
 
 <!-- Utilities -->
@@ -12313,7 +12356,7 @@ TODO:
         <xsl:attribute name="src">
             <xsl:choose>
                 <xsl:when test="$mathjax4-testing">
-                    <xsl:text>https://cdn.jsdelivr.net/npm/mathjax@4.0.0-beta.3/</xsl:text>
+                    <xsl:text>https://cdn.jsdelivr.net/npm/mathjax@4.0.0-beta.6/</xsl:text>
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:text>https://cdn.jsdelivr.net/npm/mathjax@3/es5/</xsl:text>

@@ -393,7 +393,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 </xsl:template>
 
 <!-- A convenience for attaching a Runestone id -->
-<xsl:template match="exercise|program|datafile|&PROJECT-LIKE;|task|video[@youtube]|exercises" mode="runestone-id-attribute">
+<xsl:template match="exercise|program|datafile|query|&PROJECT-LIKE;|task|video[@youtube]|exercises|interactive[@platform = 'doenetml']" mode="runestone-id-attribute">
     <xsl:attribute name="id">
         <xsl:apply-templates select="." mode="runestone-id"/>
     </xsl:attribute>
@@ -526,10 +526,11 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
                 </subtitle>
                 <!-- edition, too? -->
                 <document-id>
+                    <!-- global variables defined in -common -->
                     <xsl:attribute name="edition">
-                        <xsl:value-of select="$docinfo/document-id/@edition"/>
+                        <xsl:value-of select="$edition"/>
                     </xsl:attribute>
-                    <xsl:value-of select="$docinfo/document-id"/>
+                    <xsl:value-of select="$document-id"/>
                 </document-id>
                 <!-- duplicate blurb, blurb/@shelf for Runestone's convenience -->
                 <!-- use "value-of" to enforce assumption there is no markup   -->
@@ -606,7 +607,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
         <!-- meet the dead-end monster match below, and the default template will     -->
         <!-- recurse into non-container "task" eventually, so "task" do get           -->
         <!-- processed, even if they seem to be missing from this select.             -->
-        <xsl:apply-templates select=".//exercise|.//project|.//activity|.//exploration|.//investigation|.//video[@youtube]|.//program[(@interactive = 'codelens') and not(parent::exercise)]|.//program[(@interactive = 'activecode') and not(parent::exercise)]|.//datafile" mode="runestone-manifest"/>
+        <xsl:apply-templates select=".//exercise|.//project|.//activity|.//exploration|.//investigation|.//video[@youtube]|.//program[(@interactive = 'codelens') and not(parent::exercise)]|.//program[(@interactive = 'activecode') and not(parent::exercise)]|.//datafile|.//interactive[@platform = 'doenetml']" mode="runestone-manifest"/>
     </subchapter>
     <!-- dead end structurally, no more recursion, even if "subsection", etc. -->
 </xsl:template>
@@ -629,6 +630,15 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
 <xsl:template match="datafile" mode="runestone-manifest-label">
     <label>
         <xsl:value-of select="@filename"/>
+    </label>
+</xsl:template>
+
+<xsl:template match="interactive[@platform = 'doenetml']" mode="runestone-manifest-label">
+    <label>
+        <!-- This is not very informative.  Perhaps look up     -->
+        <!-- the tree to find a containing figure with a title  -->
+        <!-- TODO: perhaps via a type name -->
+        <xsl:text>DoenetML Interactive</xsl:text>
     </label>
 </xsl:template>
 
@@ -880,6 +890,15 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
         <xsl:apply-templates select="." mode="runestone-manifest-label"/>
         <htmlsrc>
             <xsl:apply-templates select="." mode="runestone-to-interactive"/>
+        </htmlsrc>
+    </question>
+</xsl:template>
+
+<xsl:template match="interactive[@platform = 'doenetml']" mode="runestone-manifest">
+    <question>
+        <xsl:apply-templates select="." mode="runestone-manifest-label"/>
+        <htmlsrc>
+            <xsl:apply-templates select="." mode="interactive-core"/>
         </htmlsrc>
     </question>
 </xsl:template>
@@ -1375,6 +1394,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
                         </xsl:otherwise>
                     </xsl:choose>
                     <!-- a block of unit tests for automatic feedback (with, say, an SQL database) -->
+                    <!-- NB: could mimic "program/tests" to avoid empty "tests" elements           -->
                     <xsl:if test="tests">
                         <xsl:text>--unittest--&#xa;</xsl:text>
                         <xsl:call-template name="sanitize-text">
@@ -1956,10 +1976,24 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
                             </xsl:call-template>
                             <!-- optional unit testing, with RS markup to keep it hidden -->
                             <xsl:if test="tests">
-                                <xsl:text>====&#xa;</xsl:text>
-                                <xsl:call-template name="sanitize-text">
-                                    <xsl:with-param name="text" select="tests" />
-                                </xsl:call-template>
+                                <!-- Be wary of empty "test" elements which lead to -->
+                                <!-- empty files, which are possibly not legal      -->
+                                <!-- programs for their target languages, and hence -->
+                                <!-- raise errors due to  the Runestone back-end    -->
+                                <!-- trying to process them.                        -->
+                                <!-- NB: static versions never show "tests" anyway  -->
+                                <xsl:variable name="tests-content">
+                                    <xsl:call-template name="sanitize-text">
+                                        <xsl:with-param name="text" select="tests" />
+                                    </xsl:call-template>
+                                </xsl:variable>
+                                <!-- Even if there is no content, the sanitization -->
+                                <!-- template adds a concluding newline            -->
+                                <xsl:if test="not(normalize-space($tests-content) = '')">
+                                    <xsl:text>====&#xa;</xsl:text>
+                                    <!-- historical behavior is to use sanitized version -->
+                                    <xsl:value-of select="$tests-content"/>
+                                </xsl:if>
                             </xsl:if>
                         </textarea>
                     </div>
@@ -2204,6 +2238,96 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
             </div>
         </div>
     </div>
+</xsl:template>
+
+<!-- ####### -->
+<!-- Queries -->
+<!-- ####### -->
+
+<xsl:template match="query" mode="runestone-to-interactive">
+    <!-- <xsl:text>FOO</xsl:text> -->
+    <xsl:variable name="the-choices" select="choices/choice"/>
+    <div class="ptx-runestone-container">
+        <div class="runestone">
+            <ul data-component="poll">
+                <xsl:apply-templates select="." mode="runestone-id-attribute"/>
+                <xsl:attribute name="data-results">
+                    <xsl:choose>
+                        <xsl:when test="(@visibility = 'instructor') or (@visibility = 'all')">
+                            <xsl:value-of select="@visibility"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>instructor</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:attribute>
+                <xsl:apply-templates select="statement"/>
+                <!-- infrastructure to here is common to a query with -->
+                <!-- explicit distinct choices, versus a query with a -->
+                <!-- simple scale for responses                       -->
+                <!-- NB: could define a variable early on indicating  -->
+                <!-- the nature of the poll, should there need to be  -->
+                <!-- more differentiation                             -->
+                <xsl:choose>
+                    <xsl:when test="choices">
+                        <xsl:apply-templates select="choices/choice"/>
+                    </xsl:when>
+                    <xsl:when test="foome">
+                        <!-- context switch will allow "position()" to behave -->
+                        <xsl:for-each select="$the-choices">
+                            <li>
+                                <span class="poll-choice">
+                                    <xsl:value-of select="position()"/>
+                                </span>
+                                <xsl:apply-templates/>
+                            </li>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:when test="@scale">
+                        <!-- generate list items with numbers recursively -->
+                        <xsl:call-template name="numbered-list-items">
+                            <xsl:with-param name="max" select="@scale"/>
+                        </xsl:call-template>
+                    </xsl:when>
+                    <!-- could add error warning here?  Or rely on schema? -->
+                    <xsl:otherwise/>
+                </xsl:choose>
+            </ul>
+        </div>
+    </div>
+</xsl:template>
+
+<xsl:template match="query/choices/choice">
+    <li>
+        <!-- <span class="poll-choice">
+            <xsl:number/>
+        </span> -->
+        <xsl:number/>
+        <xsl:text>. </xsl:text>
+        <xsl:apply-templates/>
+    </li>
+</xsl:template>
+
+<xsl:template name="numbered-list-items">
+    <!-- always initialize with 1 to start -->
+    <xsl:param name="current" select="'1'"/>
+    <xsl:param name="max"/>
+
+    <xsl:choose>
+        <!-- $current is too big, done with recursion -->
+        <xsl:when test="$current > $max"/>
+        <xsl:otherwise>
+            <!-- make numbered list-item -->
+            <li>
+                <xsl:value-of select="$current"/>
+            </li>
+            <!-- recurse with next integer -->
+            <xsl:call-template name="numbered-list-items">
+                <xsl:with-param name="current" select="$current + 1"/>
+                <xsl:with-param name="max" select="$max"/>
+            </xsl:call-template>
+        </xsl:otherwise>
+    </xsl:choose>
 </xsl:template>
 
 <!-- ######### -->
