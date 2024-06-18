@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<all>
+    <js type="list">
+        <item type="str">runtime.bundle.js</item>
+        <item type="str">vendors-node_modules_bootstrap_dist_js_bootstrap_js-node_modules_jquery-ui_jquery-ui_js-node_-72cd89.bundle.js</item>
+        <item type="str">runestone.bundle.js</item>
+    </js>
+    <css type="list">
+        <item type="str">vendors-node_modules_bootstrap_dist_js_bootstrap_js-node_modules_jquery-ui_jquery-ui_js-node_-72cd89.css</item>
+        <item type="str">runestone.css</item>
+    </css>
+    <cdn-url type="str">external/rjs/</cdn-url>
+    <version type="str">6.3.1</version>
+</all>

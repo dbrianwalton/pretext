@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<all>
+	<js type="list">
+		<item type="str">runtime.16a31816035f5c62.bundle.js</item>
+		<item type="str">954.4acd08a7c773a06f.bundle.js</item>
+		<item type="str">runestone.05ddf8032d3bae9a.bundle.js</item>
+	</js>
+	<css type="list">
+		<item type="str">954.97989af21df972f2.css</item>
+		<item type="str">runestone.828206f80e9e88d8.css</item>
+	</css>
+	<cdn-url type="str">external/rjs/</cdn-url>
+	<version type="str">1.20</version>
+</all>

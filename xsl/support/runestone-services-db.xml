@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<all>
+	<js type="list">
+		<item type="str">BTM.js</item>
+        <item type="str">runtime.c3fcb0ed4104450b.bundle.js</item>
+        <item type="str">637.d54be67956c5c660.bundle.js</item>
+        <item type="str">runestone.98ad5f0b6c99e1ae.bundle.js</item>
+    </js>
+    <css type="list">
+            <item type="str">637.0fa6cababf056764.css</item>
+            <item type="str">runestone.5d4568ef6f3716ae.css</item>
+    </css>
+    <cdn-url type="str">external/rjs/</cdn-url>
+    <version type="str">6.3.0</version>
+</all>

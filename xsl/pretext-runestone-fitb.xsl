@@ -27,7 +27,7 @@
         <xsl:attribute name="id">
             <xsl:value-of select="$parent-id"/>
             <xsl:text>-</xsl:text>
-            <xsl:value-of select="@name"/>
+            <xsl:apply-templates select="." mode="blank-name"/>
         </xsl:attribute>
         <xsl:attribute name="name"><xsl:value-of select="@name"/></xsl:attribute>
     </xsl:element>
@@ -44,6 +44,7 @@
     <xsl:variable name="the-id">
         <xsl:apply-templates select="." mode="html-id"/>
     </xsl:variable>
+    <xsl:variable name="b-is-dynamic" select="boolean(./setup)"/>
     <div class="runestone">
         <div data-component="fillintheblank" class="fillintheblank" style="visibility: hidden;">
             <xsl:attribute name="id">
@@ -93,21 +94,27 @@
                         </xsl:with-param>
                     </xsl:call-template>
                     <!-- Add packages that need to be loaded as javascript -->
-                    <xsl:text>,&#xa;"dyn_imports": [</xsl:text>
-                    <xsl:if test="setup/de-object">
+                    <xsl:if test="$b-is-dynamic">
+                        <xsl:text>,&#xa;"dyn_imports": [</xsl:text>
                         <xsl:text>"BTM"</xsl:text>
+                        <!-- Future: add additional packages here -->
+                        <xsl:text>]}</xsl:text>
                     </xsl:if>
-                    <xsl:text>]</xsl:text>
                     <!-- Names assigned to the blanks. (Inclusion is     -->
                     <!-- really so that evaluation of answers can refer  -->
-                    <!-- to submitted work by name.                      -->
-                    <xsl:text>,&#xa;"blankNames": {</xsl:text>
-                    <xsl:apply-templates select="statement//fillin" mode="declare-blanks" />
-                    <!-- The actual setup code is javascript enclosed in quotes. -->
-                    <!-- The declaration creates the objects that are needed.    -->
-                    <!-- The script is included as an escaped string             -->
-                    <xsl:text>},&#xa;"dyn_vars": </xsl:text>
-                    <xsl:call-template name="dynamic-setup" />
+                    <!-- to submitted work by name.)                     -->
+                    <xsl:if test="statement//fillin[@name]">
+                        <xsl:text>,&#xa;"blankNames": {</xsl:text>
+                        <xsl:apply-templates select="statement//fillin" mode="declare-blanks" />
+                        <xsl:text>}</xsl:text>
+                    </xsl:if>
+                    <xsl:if test="$b-is-dynamic">
+                        <!-- The actual setup code is javascript enclosed in quotes. -->
+                        <!-- The declaration creates the objects that are needed.    -->
+                        <!-- The script is included as an escaped string             -->
+                        <xsl:text>,&#xa;"dyn_vars": </xsl:text>
+                        <xsl:call-template name="dynamic-setup" />
+                    </xsl:if>
                     <!-- An array of tests and feedback for answer evaluation    -->
                     <!-- Each blank has a corresponding array of test/feedback   -->
                     <!-- response. The test is Javascript (stringified) that     -->
@@ -130,20 +137,32 @@
     </div>
 </xsl:template>
 
+<!-- Fillins can be provided a name or use a default rule -->
+<xsl:template match="fillin" mode="blank-name">
+    <xsl:choose>
+        <xsl:when test="@name">
+            <xsl:value-of select="@name"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>blank</xsl:text>
+            <xsl:value-of select="position()"/>
+        </xsl:otherwise>
+    </xsl:choose>
+</xsl:template>
+
 <!-- Creating a list of blank names. -->
 <xsl:template match="fillin" mode="declare-blanks">
     <xsl:if test="position()>1">
         <xsl:text>, </xsl:text>
     </xsl:if>
-    <xsl:if test="@name">
-        <xsl:call-template name="quote-string">
-            <xsl:with-param name="text" select="@name"/>
-        </xsl:call-template>
-        <xsl:text>: </xsl:text>
-        <xsl:value-of select="position()-1"/>
-    </xsl:if>
+    <xsl:call-template name="quote-string">
+        <xsl:with-param name="text">
+            <xsl:apply-templates mode="blank-name"/>
+        </xsl:with-param>
+    </xsl:call-template>
+    <xsl:text>: </xsl:text>
+    <xsl:value-of select="position()-1"/>
 </xsl:template>
-
 
 <!-- #eval in a dynamic exercise (has setup) is to evaluate -->
 <!-- an expression that has been previously generated. If   -->
@@ -243,7 +262,7 @@
         </xsl:with-param>
     </xsl:call-template>
     <xsl:text>, </xsl:text>
-    <xsl:apply-templates select="." mode="evaluate">
+    <xsl:apply-templates select="*" mode="evaluate">
         <xsl:with-param name="setupMode"><xsl:text>1</xsl:text></xsl:with-param>
     </xsl:apply-templates>
     <xsl:text>);&#xa;</xsl:text>
@@ -457,7 +476,7 @@
                     <xsl:apply-templates select="$curTest/*[2]" mode="evaluate"/>
                 </xsl:when>
                 <!-- An implied equal compares the submitted answer to the given expression. -->
-                <xsl:otherwise>   <!-- Must be expression: #var or #de-term -->
+                <xsl:otherwise>   <!-- Must be expression: #var or #de-object -->
                     <xsl:apply-templates select="$curTest" mode="evaluate"/>
                     <xsl:text>, </xsl:text>
                     <xsl:value-of select="$submit" />
@@ -546,11 +565,11 @@
 <!-- Templates for working with evaluation objects    -->
 <!-- ================================================ -->
 
-<!-- Wrapper for calling appropriate javascript commands that  -->
+<!-- Wrappers for calling appropriate javascript commands that  -->
 <!-- will parse the expression for a number appropriately,     -->
 <!-- which could be written as an expression involving symbols -->
 <!-- or a random number                                        -->
-<xsl:template match="de-object[@context='number']" mode="evaluate">
+<xsl:template match="de-number" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:variable name="prefix">
         <xsl:if test="$setupMode">
@@ -561,99 +580,83 @@
         <xsl:value-of select="$prefix"/>
         <xsl:text>_menv</xsl:text>
     </xsl:variable>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>.parseExpression(</xsl:text>
+    <xsl:call-template name="quote-strip-string">
+        <xsl:with-param name="text" select="."/>
+    </xsl:call-template>
+    <xsl:text>, "number")</xsl:text>
+</xsl:template>
+
+<xsl:template match="de-evaluate" mode="evaluate">
+    <xsl:param name="setupMode" />
+    <xsl:variable name="prefix">
+        <xsl:if test="$setupMode">
+            <xsl:text>v.</xsl:text>
+        </xsl:if>
+    </xsl:variable>
+    <xsl:variable name="de_env">
+        <xsl:value-of select="$prefix"/>
+        <xsl:text>_menv</xsl:text>
+    </xsl:variable>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>.evaluateMathObject(</xsl:text>
+        <xsl:apply-templates select="formula/*" mode="evaluate">
+            <xsl:with-param name="setupMode" select="$setupMode"/>
+        </xsl:apply-templates>
+        <xsl:text>, "number", {</xsl:text>
+        <xsl:apply-templates select="variable" mode="evaluation-binding" >
+            <xsl:with-param name="setupMode" select="$setupMode" />
+        </xsl:apply-templates>
+    <xsl:text>}).reduce(</xsl:text>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>)</xsl:text>
+</xsl:template>
+
+<xsl:template match="de-random[@distribution='discrete']" mode="evaluate">
+    <xsl:text>v._menv.generateRandom("discrete", { min:</xsl:text>
     <xsl:choose>
-        <xsl:when test="@mode='value' or @mode='formula'">
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>.parseExpression(</xsl:text>
-            <xsl:call-template name="quote-strip-string">
-                <xsl:with-param name="text" select="."/>
-            </xsl:call-template>
-            <xsl:text>, "number")</xsl:text>
+        <xsl:when test="@min">
+            <xsl:value-of select="@min"/>
         </xsl:when>
-        <xsl:when test="@mode='evaluate'">
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>.evaluateMathObject(</xsl:text>
-                <xsl:apply-templates select="formula/*" mode="evaluate">
-                    <xsl:with-param name="setupMode" select="$setupMode"/>
-                </xsl:apply-templates>
-                <xsl:text>, "number", {</xsl:text>
-                <xsl:apply-templates select="variable" mode="evaluation-binding" >
-                    <xsl:with-param name="setupMode" select="$setupMode" />
-                </xsl:apply-templates>
-            <xsl:text>}).reduce(</xsl:text>
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>)</xsl:text>
-        </xsl:when>
-        <xsl:when test="@mode='random'">
-            <!-- Different types of random number generation -->
-            <xsl:choose>
-                <xsl:when test="options[@distribution='discrete']">
-                    <xsl:variable name="rnd-min">
-                        <xsl:choose>
-                            <xsl:when test="options/@min">
-                                <xsl:value-of select="options/@min"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:text>0</xsl:text>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="rnd-max">
-                        <xsl:choose>
-                            <xsl:when test="options/@max">
-                                <xsl:value-of select="options/@max"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:text>1</xsl:text>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="rnd-by">
-                        <xsl:choose>
-                            <xsl:when test="options/@by">
-                                <xsl:value-of select="options/@by"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:text>1</xsl:text>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:variable name="rnd-nonzero">
-                        <xsl:choose>
-                            <xsl:when test="options/@nonzero = 'yes'">
-                                <xsl:text>true</xsl:text>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:text>false</xsl:text>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </xsl:variable>
-                    <xsl:call-template name="generate-random-number">
-                        <xsl:with-param name="rnd-dist">
-                            <xsl:text>discrete</xsl:text>
-                        </xsl:with-param>
-                        <xsl:with-param name="rnd-options">
-                            <xsl:text>{ min:</xsl:text>
-                            <xsl:value-of select="$rnd-min"/>
-                            <xsl:text>, max:</xsl:text>
-                            <xsl:value-of select="$rnd-max"/>
-                            <xsl:text>, by:</xsl:text>
-                            <xsl:value-of select="$rnd-by"/>
-                            <xsl:text>, nonzero:</xsl:text>
-                            <xsl:value-of select="$rnd-nonzero"/>
-                            <xsl:text>}</xsl:text>
-                        </xsl:with-param>
-                    </xsl:call-template>
-                </xsl:when>
-            </xsl:choose>
-        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>0</xsl:text>
+        </xsl:otherwise>
     </xsl:choose>
+    <xsl:text>, max:</xsl:text>
+    <xsl:choose>
+        <xsl:when test="@max">
+            <xsl:value-of select="@max"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>1</xsl:text>
+        </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>, by:</xsl:text>
+    <xsl:choose>
+        <xsl:when test="@by">
+            <xsl:value-of select="@by"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>1</xsl:text>
+        </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>, nonzero:</xsl:text>
+    <xsl:choose>
+        <xsl:when test="@nonzero = 'yes'">
+            <xsl:text>true</xsl:text>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>false</xsl:text>
+        </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>})&#xa;</xsl:text>
 </xsl:template>
 
 <!-- Objects defined as formulas. Several possible modes: -->
 <!-- formula (literal), substitution (composition),       -->
 <!-- derivative and evaluate                              -->
-<xsl:template match="de-object[@context='formula']" mode="evaluate">
+<xsl:template match="de-expression[@mode='formula']" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:variable name="prefix">
         <xsl:if test="$setupMode">
@@ -664,60 +667,62 @@
         <xsl:value-of select="$prefix"/>
         <xsl:text>_menv</xsl:text>
     </xsl:variable>
-    <xsl:choose>
-        <!-- Simple formula is provided, with or without pattern matching -->
-        <xsl:when test="@mode='formula'">
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>.parseExpression(</xsl:text>
-            <xsl:call-template name="quote-strip-string">
-                <xsl:with-param name="text" select="."/>
-            </xsl:call-template>
-            <xsl:text>, "formula")</xsl:text>
-        </xsl:when>
-        <!-- Composition of two formulas (same look as evaluation)                -->
-        <!-- Requires descendent nodes: formula and values to substitute          -->
-        <xsl:when test="@mode='substitution'">
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>.composeExpression(</xsl:text>
-            <xsl:apply-templates select="formula/*" mode="evaluate">
-                <xsl:with-param name="setupMode" select="$setupMode"/>
-            </xsl:apply-templates>
-            <xsl:text>, {</xsl:text>
-                <xsl:apply-templates select="variable" mode="evaluation-binding" >
-                    <xsl:with-param name="setupMode" select="$setupMode" />
-                </xsl:apply-templates>
-            <xsl:text>}).reduce(</xsl:text>
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>)</xsl:text>
-        </xsl:when>
-        <!-- Derivative of a formula.                        -->
-        <!-- Requires descendent nodes: formula, variable    -->
-        <xsl:when test="@mode='derivative'">
-            <xsl:apply-templates select="formula" mode="evaluate">
-                <xsl:with-param name="setupMode" select="$setupMode" />
-            </xsl:apply-templates>
-            <xsl:text>.derivative(</xsl:text>
-            <xsl:call-template name="quote-string">
-                <xsl:with-param name="text" select="variable/@name"/>
-            </xsl:call-template>
-            <xsl:text>)</xsl:text>
-        </xsl:when>
-        <!-- Evaluate a formula at specific values.          -->
-        <!-- Values for variables define a binding.          -->
-        <xsl:when test="@mode='evaluate'">
-            <xsl:apply-templates select="formula" mode="evaluate">
-                <xsl:with-param name="setupMode" select="$setupMode"/>
-            </xsl:apply-templates>
-            <xsl:text>.evaluate(</xsl:text>
-            <xsl:value-of select="$de_env"/>
-            <xsl:text>, {</xsl:text>
-            <xsl:apply-templates select="variable" mode="evaluation-binding" >
-                <xsl:with-param name="setupMode" select="$setupMode" />
-            </xsl:apply-templates>
-            <xsl:text>})</xsl:text>
-        </xsl:when>
-    </xsl:choose>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>.parseExpression(</xsl:text>
+    <xsl:call-template name="quote-strip-string">
+        <xsl:with-param name="text" select="."/>
+    </xsl:call-template>
+    <xsl:text>, "formula").reduce(</xsl:text>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>)</xsl:text>
 </xsl:template>
+
+<xsl:template match="de-expression[@mode='substitution']" mode="evaluate">
+    <xsl:param name="setupMode" />
+    <xsl:variable name="prefix">
+        <xsl:if test="$setupMode">
+            <xsl:text>v.</xsl:text>
+        </xsl:if>
+    </xsl:variable>
+    <xsl:variable name="de_env">
+        <xsl:value-of select="$prefix"/>
+        <xsl:text>_menv</xsl:text>
+    </xsl:variable>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>.composeExpression(</xsl:text>
+    <xsl:apply-templates select="formula/*" mode="evaluate">
+        <xsl:with-param name="setupMode" select="$setupMode"/>
+    </xsl:apply-templates>
+    <xsl:text>, {</xsl:text>
+        <xsl:apply-templates select="variable" mode="evaluation-binding" >
+            <xsl:with-param name="setupMode" select="$setupMode" />
+        </xsl:apply-templates>
+    <xsl:text>}).reduce(</xsl:text>
+    <xsl:value-of select="$de_env"/>
+    <xsl:text>)</xsl:text>
+</xsl:template>
+
+<xsl:template match="de-expression[@mode='derivative']" mode="evaluate">
+    <xsl:param name="setupMode" />
+    <xsl:variable name="prefix">
+        <xsl:if test="$setupMode">
+            <xsl:text>v.</xsl:text>
+        </xsl:if>
+    </xsl:variable>
+    <xsl:variable name="de_env">
+        <xsl:value-of select="$prefix"/>
+        <xsl:text>_menv</xsl:text>
+    </xsl:variable>
+    <xsl:apply-templates select="formula/*" mode="evaluate">
+        <xsl:with-param name="setupMode" select="$setupMode" />
+    </xsl:apply-templates>
+    <xsl:text>.derivative(</xsl:text>
+    <xsl:call-template name="quote-string">
+        <xsl:with-param name="text" select="variable/@name"/>
+    </xsl:call-template>
+    <xsl:text>)</xsl:text>
+</xsl:template>
+
 
 <!-- Used during composition or evaluation of a variable-->
 <xsl:template match="variable" mode="evaluation-binding">
@@ -746,41 +751,6 @@
     </xsl:choose>
 </xsl:template>
 
-<!-- Generate a random parameter. -->
-<xsl:template name="generate-random-number">
-    <xsl:param name="rnd-dist" />
-    <xsl:param name="rnd-options" />
-    <xsl:text>v._menv.generateRandom(</xsl:text>
-        <xsl:call-template name="quote-string">
-            <xsl:with-param name="text" select="$rnd-dist"/>
-        </xsl:call-template>
-        <xsl:text>, </xsl:text>
-        <xsl:value-of select="$rnd-options"/>
-    <xsl:text>)&#xa;</xsl:text>
-</xsl:template>
-
-
-<!-- mode="evaluate" is used during setup and during feedback evaluation            -->
-<!-- Define an expressions that will be parsed in their math context                -->
-<!-- The expression can be defined in terms of the parameters and other expressions -->
-<xsl:template match="de-object[@context='formula' and @mode='formula']|de-term[@context='formula']" mode="evaluate">
-    <xsl:param name="setupMode" />
-    <xsl:variable name="de_env">
-        <xsl:if test="$setupMode">
-            <xsl:text>v.</xsl:text>
-        </xsl:if>
-        <xsl:text>_menv</xsl:text>
-    </xsl:variable>
-    <xsl:value-of select="$de_env"/>
-    <xsl:text>.parseExpression(</xsl:text>
-    <xsl:call-template name="quote-strip-string">
-        <xsl:with-param name="text" select="."/>
-    </xsl:call-template>
-    <xsl:text>).reduce(</xsl:text>
-    <xsl:value-of select="$de_env"/>
-    <xsl:text>)</xsl:text>
-</xsl:template>
-
 
 <!-- var elements in expressions (evaluate) are replaced by their name -->
 <!-- During setup, we need to use the context of the `v` object        -->
@@ -797,33 +767,5 @@
 
 <!-- Nothing else is defined for evaluation during setup  -->
 <xsl:template match="/" mode="evaluate"/>
-
-<!-- How to *add* expressions/formulas to the math context -->
-<xsl:template match="de-object[@context='formula' and @mode='formula']|de-term[@context='formula']" mode="runestone-setup-old">
-    <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
-    <xsl:text> = v._menv.addMathObject(</xsl:text>
-    <xsl:call-template name="quote-string">
-        <xsl:with-param name="text" select="@name"/>
-    </xsl:call-template>
-    <xsl:text>, "formula", </xsl:text>
-    <xsl:apply-templates select="." mode="evaluate">
-        <xsl:with-param name="setupMode"><xsl:text>1</xsl:text></xsl:with-param>
-    </xsl:apply-templates>
-    <xsl:text>);&#xa;</xsl:text>
-</xsl:template>
-
-<!-- How to *add* expressions defined by substitution to the math context -->
-<xsl:template match="de-object[@context='formula' and @mode='substitution']|de-term[@context='substitution']" mode="runestone-setup-old">
-    <xsl:text>v.</xsl:text><xsl:value-of select="@name"/>
-    <xsl:text> = v._menv.addExpression(</xsl:text>
-    <xsl:call-template name="quote-string">
-        <xsl:with-param name="text" select="@name"/>
-    </xsl:call-template>
-    <xsl:text>, </xsl:text>
-    <xsl:apply-templates select="." mode="evaluate">
-        <xsl:with-param name="setupMode"><xsl:text>1</xsl:text></xsl:with-param>
-    </xsl:apply-templates>
-    <xsl:text>);&#xa;</xsl:text>
-</xsl:template>
 
 </xsl:stylesheet>
