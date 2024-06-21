@@ -23,16 +23,33 @@
         <xsl:apply-templates select="ancestor::exercise" mode="html-id" />
     </xsl:variable>
     <xsl:element name="input">
-        <xsl:attribute name="types"><xsl:text>text</xsl:text></xsl:attribute>
+        <xsl:attribute name="type">
+            <xsl:choose>
+                <xsl:when test="@mode = 'number'">
+                    <xsl:text>number</xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>text</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:attribute>
         <xsl:attribute name="id">
             <xsl:value-of select="$parent-id"/>
             <xsl:text>-</xsl:text>
             <xsl:apply-templates select="." mode="blank-name"/>
         </xsl:attribute>
-        <xsl:attribute name="name"><xsl:value-of select="@name"/></xsl:attribute>
+        <xsl:if test="@name">
+            <xsl:attribute name="name"><xsl:value-of select="@name"/></xsl:attribute>
+        </xsl:if>
     </xsl:element>
 </xsl:template>
 
+<xsl:variable name="defaultCorrectResponse">
+    <xsl:text>Correct.</xsl:text>
+</xsl:variable>
+<xsl:variable name="defaultIncorrectResponse">
+    <xsl:text>Try again.</xsl:text>
+</xsl:variable> 
 
 <!-- ========================================================= -->
 <!-- The Runestone element is based on JSON scripts describing -->
@@ -73,7 +90,7 @@
                     <xsl:text>"problemHtml": </xsl:text>
                     <xsl:call-template name="escape-quote-xml">
                         <xsl:with-param name="xml_content">
-                            <xsl:apply-templates select="statement" mode="body" />
+                            <xsl:apply-templates select="statement/*" mode="body" />
                             <xsl:if test="$b-dynamics-static-seed">
                                 <div>
                                     <xsl:attribute name="id">
@@ -90,7 +107,7 @@
                     <xsl:text>,&#xa;"solutionHtml": </xsl:text>
                     <xsl:call-template name="escape-quote-xml">
                         <xsl:with-param name="xml_content">
-                            <xsl:apply-templates select="solution" mode="body" />
+                            <xsl:apply-templates select="solution/*" mode="body" />
                         </xsl:with-param>
                     </xsl:call-template>
                     <!-- Add packages that need to be loaded as javascript -->
@@ -98,7 +115,7 @@
                         <xsl:text>,&#xa;"dyn_imports": [</xsl:text>
                         <xsl:text>"BTM"</xsl:text>
                         <!-- Future: add additional packages here -->
-                        <xsl:text>]}</xsl:text>
+                        <xsl:text>]</xsl:text>
                     </xsl:if>
                     <!-- Names assigned to the blanks. (Inclusion is     -->
                     <!-- really so that evaluation of answers can refer  -->
@@ -145,23 +162,26 @@
         </xsl:when>
         <xsl:otherwise>
             <xsl:text>blank</xsl:text>
-            <xsl:value-of select="position()"/>
+            <xsl:number />
         </xsl:otherwise>
     </xsl:choose>
 </xsl:template>
 
 <!-- Creating a list of blank names. -->
 <xsl:template match="fillin" mode="declare-blanks">
-    <xsl:if test="position()>1">
+    <xsl:variable name="blankNum">
+        <xsl:number />
+    </xsl:variable>
+    <xsl:if test="$blankNum>1">
         <xsl:text>, </xsl:text>
     </xsl:if>
     <xsl:call-template name="quote-string">
         <xsl:with-param name="text">
-            <xsl:apply-templates mode="blank-name"/>
+            <xsl:apply-templates select="." mode="blank-name"/>
         </xsl:with-param>
     </xsl:call-template>
     <xsl:text>: </xsl:text>
-    <xsl:value-of select="position()-1"/>
+    <xsl:value-of select="$blankNum - 1"/>
 </xsl:template>
 
 <!-- #eval in a dynamic exercise (has setup) is to evaluate -->
@@ -169,6 +189,7 @@
 <!-- in math-mode, we want to see if it is an object that   -->
 <!-- knows how to formulate a LaTeX representation          -->
 <!-- The `toTeX` javascript function is defined in BTM.js   -->
+<!-- which is loaded by Runestone.                          -->
 <xsl:template match="exercise[//setup]//eval[@expr]">
     <xsl:text>[%= </xsl:text>
     <xsl:choose>
@@ -294,9 +315,17 @@
     <xsl:if test="position() > 1">
         <xsl:text>, </xsl:text>
     </xsl:if>
-    <!-- Future: There may be attributes of the fillin that declare parser type. -->
-    <!-- For now, simply assuming everything is an expression.                   -->
-    <xsl:text>v._menv.getParser()</xsl:text>
+     <xsl:choose>
+        <xsl:when test="@mode='math-formula'">
+            <xsl:text>v._menv.getParser()</xsl:text>
+        </xsl:when>
+        <xsl:when test="@mode='number'">
+            <xsl:text>Number</xsl:text>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>function(val){ return val; }</xsl:text>
+        </xsl:otherwise>
+     </xsl:choose>
 </xsl:template>
 
 
@@ -304,139 +333,251 @@
 <!-- Evaluation and Feedback                                    -->
 <!-- ========================================================== -->
 
+<!-- Deal with possibility of global checker for all blanks -->
+<xsl:template match="evaluation" mode="get-multianswer-check">
+    <xsl:variable name="responseTree" select="ancestor::exercise//statement//fillin" />
+    <xsl:if test="count($responseTree) > 1 and ancestor::exercise//evaluation/evaluate[@all='yes']/test">
+        <xsl:apply-templates select="ancestor::exercise//evaluation/evaluate[@all='yes']/test" mode="create-test-feedback">
+            <xsl:with-param name="fillin" select="$responseTree"/>
+        </xsl:apply-templates>
+    </xsl:if>
+</xsl:template>
+
+
 <!-- Template for answer checking. Actual work done by specialized templates. -->
 <xsl:template match="fillin" mode="dynamic-feedback">
     <xsl:param name="multiAns"/>
     <xsl:variable name="curFillIn" select="."/>
-    <xsl:variable name="check" select="ancestor::exercise//evaluation/evaluate[@submit = $curFillIn/@name]" />
-    <xsl:if test="position() > 1">
+    <xsl:variable name="fillinName">
+        <xsl:apply-templates select="." mode="blank-name"/>
+    </xsl:variable>
+    <xsl:variable name="blankNum">
+        <xsl:number />
+    </xsl:variable>
+    <xsl:variable name="check">
+        <xsl:choose>
+            <xsl:when test="ancestor::exercise//evaluation/evaluate[@name = $fillinName]">
+                <xsl:copy-of select="ancestor::exercise//evaluation/evaluate[@name = $fillinName]"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="ancestor::exercise//evaluation/evaluate[position() = $blankNum]"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable> 
+    <xsl:variable name="checkCorrectTest">
+        <xsl:choose>
+            <xsl:when test="exsl:node-set($check)/evaluate/test[@correct='yes']">
+                <xsl:copy-of select="exsl:node-set($check)/evaluate/test[@correct='yes']"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:copy-of select="exsl:node-set($check)/evaluate/test[position()=1]"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <xsl:if test="$blankNum > 1">
         <xsl:text>, </xsl:text>
     </xsl:if>
     <!-- First check is for correctness. -->
-    <xsl:text>[{"solution_code": </xsl:text>
-    <xsl:call-template name="escape-quote-string">
-        <xsl:with-param name="text">
+    <xsl:text>[</xsl:text>
+    <xsl:choose>
+        <xsl:when test="string-length($multiAns)>0">
+            <xsl:value-of select="$multiAns"/>
+        </xsl:when>
+        <xsl:when test="$checkCorrectTest">
+            <xsl:apply-templates select="exsl:node-set($checkCorrectTest)/test" mode="create-test-feedback">
+                <xsl:with-param name="fillin" select="$curFillIn" />
+                <xsl:with-param name="b-correct" select="'yes'" />
+            </xsl:apply-templates>
+        </xsl:when>
+        <!-- If no explicit test is provided, use given correct info. -->
+        <xsl:otherwise>
+            <xsl:text>{</xsl:text>
             <xsl:choose>
-                <xsl:when test="string-length($multiAns)>0">
-                    <xsl:value-of select="$multiAns"/>
+                <xsl:when test="$curFillIn/@mode='number'">
+                    <xsl:text>"number": [</xsl:text>
+                    <xsl:value-of select="exsl:node-set($curFillIn)/@correct"/>
+                    <xsl:text>,</xsl:text>
+                    <xsl:value-of select="exsl:node-set($curFillIn)/@correct"/>
                 </xsl:when>
-                <xsl:when test="$check/test[@correct='yes']">
-                    <xsl:call-template name="create-test">
-                        <xsl:with-param name="submit" select="$curFillIn/@name" />
-                        <xsl:with-param name="test" select="$check/test[@correct='yes']/*[not(self::feedback)]" />
-                    </xsl:call-template>
+                <xsl:when test="$curFillIn/@mode='string'">
+                    <xsl:text>"regex": </xsl:text>
+                    <xsl:value-of select="exsl:node-set($curFillIn)/@correct"/>
                 </xsl:when>
-                <!-- If no explicit test, must be on the fillin. -->
-                <xsl:otherwise>
+                <xsl:when test="$curFillIn/@mode='math'">
                     <xsl:text>function() {&#xa;</xsl:text>
                     <xsl:text>    return _menv.compareExpressions(</xsl:text>
                     <xsl:value-of select="$curFillIn/@correct"/>
-                    <xsl:text>, </xsl:text>
-                    <xsl:value-of select="$curFillIn/@name"/>
+                    <xsl:text>, ans</xsl:text>
+                    <!-- Can we use ans above instead of $curFillIn/@name? -->
+                    <!-- xsl:value-of select="exsl:node-set($curFillIn)/@name"/-->
                     <xsl:text>);&#xa;}</xsl:text>
-                </xsl:otherwise>
+                </xsl:when>
             </xsl:choose>
-            <xsl:text>()</xsl:text>
-        </xsl:with-param>
-    </xsl:call-template>
-    <xsl:text>, "feedback": </xsl:text>
-    <xsl:choose>
-        <xsl:when test="$check/test[@correct='yes']/feedback">
-            <xsl:call-template name="quote-string">
-                <xsl:with-param name="text" select="$check/test[@correct='yes']/feedback"/>
-            </xsl:call-template>
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:text>"Correct."</xsl:text>
+            <xsl:text>, "feedback": "</xsl:text>
+            <xsl:value-of select="$defaultCorrectResponse"/>
+            <xsl:text>"}</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>}</xsl:text>
+
     <!-- Now add additional checks for feedback. -->
-    <xsl:for-each select="$check/test[not(@correct='yes')]">
-        <xsl:text>, {"solution_code": </xsl:text>
-        <xsl:call-template name="escape-quote-string">
-            <xsl:with-param name="text">
-                <xsl:call-template name="create-test">
-                    <xsl:with-param name="submit" select="$curFillIn/@name" />
-                    <xsl:with-param name="test" select="*[not(self::feedback)]" />
-                </xsl:call-template>
-                <xsl:text>()</xsl:text>
-            </xsl:with-param>
-        </xsl:call-template>
-        <xsl:text>, "feedback": </xsl:text>
-        <xsl:choose>
-            <xsl:when test="feedback">
-                <xsl:call-template name="quote-string">
-                    <xsl:with-param name="text" select="feedback"/>
-                </xsl:call-template>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>"Try again."</xsl:text>
-            </xsl:otherwise>
-        </xsl:choose>
-        <xsl:text>}</xsl:text>
+    <xsl:for-each select="exsl:node-set($check)//test[not(@correct='yes')]">
+        <xsl:text>, </xsl:text>
+        <xsl:apply-templates select="." mode="create-test-feedback">
+            <xsl:with-param name="fillin" select="$curFillIn"/>
+        </xsl:apply-templates>
     </xsl:for-each>
     <!-- Default feedback for the blank. Always evaluates true.   -->
-    <xsl:text>, {"feedback": </xsl:text>
-    <xsl:choose>
-        <!-- Allow the problem to define it: feedback with no test   -->
-        <xsl:when test="$check/feedback">
-            <xsl:call-template name="quote-string">
-                <xsl:with-param name="text" select="$check/feedback"/>
-            </xsl:call-template>
-        </xsl:when>
-        <!-- Maybe this should be a configurable default???   -->
-        <xsl:otherwise>
-            <xsl:text>"Try again."</xsl:text>
-        </xsl:otherwise>
-    </xsl:choose>
-    <xsl:text>}]</xsl:text>         
+    <xsl:text>, {"feedback": "</xsl:text>
+    <xsl:value-of select="$defaultIncorrectResponse"/>
+    <xsl:text>"}]</xsl:text>         
 </xsl:template>
 
-<!-- Deal with possibility of global checker for all blanks -->
-<xsl:template match="evaluation" mode="get-multianswer-check">
-    <xsl:variable name="responseTree" select="ancestor::exercise//fillin" />
-    <xsl:if test="count($responseTree) > 1 and ancestor::exercise//evaluation/evaluate[@all='yes']/test">
-        <xsl:call-template name="create-test">
-            <xsl:with-param name="test" select="ancestor::exercise//evaluation/evaluate[@all='yes']/test/*[not(self::feedback)]" />
-        </xsl:call-template>
-    </xsl:if>
+<xsl:template match="test" mode="create-test-feedback">
+    <xsl:param name="fillin"/>
+    <xsl:param name="b-correct" select="'no'"/>
+    <xsl:variable name="feedback-rtf">
+        <xsl:apply-templates select="feedback"/>
+    </xsl:variable>
+    <xsl:text>{</xsl:text>
+    <xsl:apply-templates select="." mode="create-test">
+        <xsl:with-param name="fillin" select="$fillin" />
+    </xsl:apply-templates>
+    <xsl:text>, "feedback": "</xsl:text>
+    <xsl:choose>
+        <xsl:when test="feedback">
+            <!-- serialize HTML as text, then escape as JSON -->
+            <xsl:call-template name="escape-json-string">
+                <xsl:with-param name="text">
+                    <xsl:apply-templates select="exsl:node-set($feedback-rtf)" mode="serialize"/>
+                </xsl:with-param>
+            </xsl:call-template>
+        </xsl:when>
+        <xsl:when test="$b-correct='yes'">
+            <xsl:value-of select="$defaultCorrectResponse"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:value-of select="$defaultIncorrectResponse"/>
+        </xsl:otherwise>
+    </xsl:choose>
+    <xsl:text>"}</xsl:text>
 </xsl:template>
 
 <!-- Template for simple answer checkers: no interaction between different fillins. -->
 <!-- Add a post-filter to deal with additional feedback, similar to AnswerHints but allowing more complex logic. -->
+<!-- JSON dictionary for numerical condition -->
+<xsl:template match="test[numcmp]" mode="create-test">
+    <xsl:param name="fillin"/>
+    <xsl:variable name="answer">
+        <xsl:choose>
+            <xsl:when test="numcmp/@use-correct='yes'">
+                <xsl:value-of select="$fillin/@correct"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$numcmp"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <xsl:variable name="tolerance">
+        <xsl:choose>
+            <xsl:when test="numcmp/@use-correct='yes' and $fillin/@tolerance">
+                <xsl:value-of select="$fillin/@tolerance"/>
+            </xsl:when>
+            <xsl:when test="numcmp/@tolerance">
+                <xsl:value-of select="numcmp/@tolerance"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>0</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <xsl:text>"number": [</xsl:text>
+    <xsl:value-of select="$answer - $tolerance"/>
+    <xsl:text>,</xsl:text>
+    <xsl:value-of select="$answer + $tolerance"/>
+    <xsl:text>]</xsl:text>
+</xsl:template>
 
-<xsl:template name="create-test">
-    <xsl:param name="submit" />
-    <xsl:param name="test" />
-    <xsl:text>function() {&#xa;</xsl:text>
-    <!-- Create a checker function. Initialize a stack of flag variables to track results. -->
-    <xsl:text>    var testResults = new Array();&#xa;</xsl:text>
-    <xsl:choose>
-        <xsl:when test="count($test[not(self::feedback)]) = 1">
-            <xsl:call-template name="checker-simple">
-                <xsl:with-param name="submit" select="$submit" />
-                <xsl:with-param name="curTest" select="$test" />
-                <xsl:with-param name="level" select="0" />
-            </xsl:call-template>
-        </xsl:when>
-        <xsl:otherwise>
-            <xsl:call-template name="checker-layer">
-                <xsl:with-param name="tests" select="$test" />
-                <xsl:with-param name="level" select="0" />
-                <xsl:with-param name="logic" select="'and'" /> <!-- All tests at first layer must be true -->
-            </xsl:call-template>
-        </xsl:otherwise>
-    </xsl:choose>
-    <xsl:text>    return (testResults[0]);&#xa;</xsl:text>
-    <xsl:text>}</xsl:text>
+<!-- JSON dictionary for string condition -->
+<xsl:template match="test[strcmp]" mode="create-test">
+    <xsl:param name="fillin"/>
+    <xsl:variable name="answer">
+        <xsl:choose>
+            <xsl:when test="strcmp/@use-correct='yes'">
+                <xsl:value-of select="$fillin/@correct"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="strcmp"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <xsl:variable name="regexFlags">
+        <xsl:choose>
+            <xsl:when test="strcmp/@use-correct='yes' and $fillin/@case = 'insensitive'">
+                <xsl:text>i</xsl:text>
+            </xsl:when>
+            <xsl:when test="strcmp/@case = 'insensitive'">
+                <xsl:text>i</xsl:text>
+            </xsl:when>
+        </xsl:choose>
+    </xsl:variable>
+    <!-- regex string match, drop    -->
+    <!-- leading/trailing whitespace -->
+    <xsl:text>"regex": "</xsl:text>
+    <!-- JSON escapes necessary for regular expression -->
+    <xsl:call-template name="escape-json-string">
+        <xsl:with-param name="text">
+            <xsl:text>^\s*</xsl:text>
+            <xsl:value-of select="$answer"/>
+            <xsl:text>\s*$</xsl:text>
+        </xsl:with-param>
+    </xsl:call-template>
+    <xsl:text>"</xsl:text>
+    <!-- flag for case-sensitive match -->
+    <!-- default:  'sensitive'         -->
+    <xsl:text>, "regexFlags": "</xsl:text>
+    <xsl:value-of select="$regexFlags"/>
+    <xsl:text>"</xsl:text>
+</xsl:template>
+
+<!-- Otherwise create a function that deals with the test. -->
+<xsl:template match="test" mode="create-test">
+    <xsl:param name="fillin" />
+    <xsl:variable name="conditions" select="*[not(self::feedback)]"/>
+    <xsl:text>"solution_code": </xsl:text>
+    <xsl:variable name="js_code">
+        <xsl:text>function() {&#xa;</xsl:text>
+        <!-- Create a checker function. Initialize a stack of flag variables to track results. -->
+        <xsl:text>    var testResults = new Array();&#xa;</xsl:text>
+        <xsl:choose>
+            <xsl:when test="count($conditions) = 1">
+                <xsl:call-template name="checker-simple">
+                    <xsl:with-param name="fillin" select="$fillin" />
+                    <xsl:with-param name="curTest" select="$conditions" />
+                    <xsl:with-param name="level" select="0" />
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:call-template name="checker-layer">
+                    <xsl:with-param name="fillin" select="$fillin" />
+                    <xsl:with-param name="tests" select="$conditions" />
+                    <xsl:with-param name="level" select="0" />
+                    <xsl:with-param name="logic" select="'and'" /> <!-- All tests at first layer must be true -->
+                </xsl:call-template>
+            </xsl:otherwise>
+        </xsl:choose>
+        <xsl:text>    return (testResults[0]);&#xa;</xsl:text>
+        <xsl:text>}()</xsl:text>
+    </xsl:variable>
+    <xsl:call-template name="escape-quote-string">
+        <xsl:with-param name="text" select="$js_code"/>
+    </xsl:call-template>
 </xsl:template>
 
 
 <!-- This template is called for a simple test (no compound logic). -->
 <xsl:template name="checker-simple">
     <xsl:param name="curTest" />
-    <xsl:param name="submit" />
+    <xsl:param name="fillin" />
     <xsl:param name="level" select="0" />
     <xsl:choose>
         <!-- Test might be coded directly in javascript -->
@@ -447,17 +588,17 @@
             <xsl:value-of select="$curTest"/>
         </xsl:when>
         <!-- Test might require logic -->
-        <xsl:when test="name($curTest)='and' or name($curTest)='or' or name($curTest)='not'">
+        <xsl:when test="name($curTest)='logical'">
             <xsl:call-template name="checker-layer">
-                <xsl:with-param name="submit" select="$submit" />
+                <xsl:with-param name="fillin" select="$fillin" />
                 <xsl:with-param name="tests" select="$curTest/*" />
-                <xsl:with-param name="level" select="$level+1" />
-                <xsl:with-param name="logic" select="name()" /> <!-- Default: All tests at first layer must be true -->
+                <xsl:with-param name="level" select="$level + 1" />
+                <xsl:with-param name="logic" select="$curTest/@op" /> <!-- Default: All tests at first layer must be true -->
             </xsl:call-template>
             <xsl:text>    testResults[</xsl:text>
             <xsl:value-of select="$level" />
             <xsl:text>] = testResults[</xsl:text>
-            <xsl:value-of select="$level+1" />
+            <xsl:value-of select="$level + 1" />
             <xsl:text>];&#xa;</xsl:text>
         </xsl:when>
         <!-- Otherwise simple test -->
@@ -470,16 +611,37 @@
             <xsl:text>_menv.compareExpressions(</xsl:text>
             <xsl:choose>
                 <!-- An equal element must have two expression children. -->
-                <xsl:when test="name($curTest) = 'equal'">
+                <xsl:when test="name($curTest) = 'mathcmp' and $curTest/@expr">
+                    <xsl:apply-templates select="$curTest/@expr" mode="evaluate"/>
+                    <xsl:text>, ans</xsl:text>
+                </xsl:when>
+                <xsl:when test="name($curTest) = 'mathcmp'">
+                    <xsl:message>
+                        <xsl:text>!mathcmp:1!</xsl:text>
+                        <xsl:value-of select="name($curTest/*[1])"/>
+                        <xsl:call-template name="escape-quote-xml">
+                            <xsl:with-param name="xml_content" select="$curTest/*[1]"/>
+                        </xsl:call-template> 
+                    </xsl:message>
+                    <xsl:message>
+                        <xsl:text>!mathcmp:2!</xsl:text>
+                        <xsl:value-of select="name($curTest/*[2])"/>
+                        <xsl:call-template name="escape-quote-xml">
+                            <xsl:with-param name="xml_content" select="$curTest/*[2]"/>
+                        </xsl:call-template> 
+                    </xsl:message>
                     <xsl:apply-templates select="$curTest/*[1]" mode="evaluate"/>
                     <xsl:text>, </xsl:text>
                     <xsl:apply-templates select="$curTest/*[2]" mode="evaluate"/>
                 </xsl:when>
                 <!-- An implied equal compares the submitted answer to the given expression. -->
                 <xsl:otherwise>   <!-- Must be expression: #var or #de-object -->
-                    <xsl:apply-templates select="$curTest" mode="evaluate"/>
-                    <xsl:text>, </xsl:text>
-                    <xsl:value-of select="$submit" />
+                <xsl:message>
+                    <xsl:text>!other!</xsl:text>
+                    <xsl:value-of select="name($curTest)"/>
+                </xsl:message>
+                <xsl:apply-templates select="$curTest" mode="evaluate"/>
+                    <xsl:text>, ans</xsl:text>
                 </xsl:otherwise>
             </xsl:choose>
             <xsl:text>)</xsl:text>
@@ -491,7 +653,7 @@
 <!-- A test can also be composite involving a combination of logical tests -->
 <!-- This template works through one layer, recursively dealing with deeper layers as needed -->
 <xsl:template name="checker-layer" >
-    <xsl:param name="submit" />
+    <xsl:param name="fillin" />
     <xsl:param name="tests" />                   <!-- The layer of tests (subtree) -->
     <xsl:param name="level" select="0" />        <!-- Level (or depth) of the layer -->
     <xsl:param name="logic" select="'and'" />    <!-- and = all must be true, or = at least one, not = negation -->
@@ -510,7 +672,7 @@
                 <xsl:value-of select="$level+1" />
                 <xsl:text>] = 1;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
-                    <xsl:with-param name="submit" select="$submit" />
+                    <xsl:with-param name="fillin" select="$fillin" />
                     <xsl:with-param name="tests" select="./*" />
                     <xsl:with-param name="level" select="$level+1" />
                     <xsl:with-param name="logic" select="'and'" /> <!-- Default: All tests at first layer must be true -->
@@ -521,7 +683,7 @@
                 <xsl:value-of select="$level+1" />
                 <xsl:text>] = 0;&#xa;</xsl:text>
                 <xsl:call-template name="checker-layer">
-                    <xsl:with-param name="submit" select="$submit" />
+                    <xsl:with-param name="fillin" select="$fillin" />
                     <xsl:with-param name="tests" select="./*" />
                     <xsl:with-param name="level" select="$level+1" />
                     <xsl:with-param name="logic" select="'or'" /> <!-- Default: All tests at first layer must be true -->
@@ -529,7 +691,7 @@
             </xsl:when>
             <xsl:when test="name()='not'">
                 <xsl:call-template name="checker-layer">
-                    <xsl:with-param name="submit" select="$submit" />
+                    <xsl:with-param name="fillin" select="$fillin" />
                     <xsl:with-param name="tests" select="./*" />
                     <xsl:with-param name="level" select="$level+1" />
                     <xsl:with-param name="logic" select="'not'" /> <!-- Default: All tests at first layer must be true -->
@@ -537,7 +699,7 @@
             </xsl:when>
             <xsl:otherwise>
                 <xsl:call-template name="checker-simple">
-                    <xsl:with-param name="submit" select="$submit" />
+                    <xsl:with-param name="fillin" select="$fillin" />
                     <xsl:with-param name="curTest" select="." />
                     <xsl:with-param name="level" select="$level+1" />
                 </xsl:call-template>
@@ -600,7 +762,7 @@
         <xsl:text>_menv</xsl:text>
     </xsl:variable>
     <xsl:value-of select="$de_env"/>
-    <xsl:text>.evaluateMathObject(</xsl:text>
+    <xsl:text>.evaluateExpression(</xsl:text>
         <xsl:apply-templates select="formula/*" mode="evaluate">
             <xsl:with-param name="setupMode" select="$setupMode"/>
         </xsl:apply-templates>
@@ -650,13 +812,13 @@
             <xsl:text>false</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
-    <xsl:text>})&#xa;</xsl:text>
+    <xsl:text>})</xsl:text>
 </xsl:template>
 
 <!-- Objects defined as formulas. Several possible modes: -->
 <!-- formula (literal), substitution (composition),       -->
 <!-- derivative and evaluate                              -->
-<xsl:template match="de-expression[@mode='formula']" mode="evaluate">
+<xsl:template match="de-expression[not(@mode) or @mode='formula']" mode="evaluate">
     <xsl:param name="setupMode" />
     <xsl:variable name="prefix">
         <xsl:if test="$setupMode">
@@ -761,11 +923,27 @@
             <xsl:text>v.</xsl:text>
         </xsl:if>
     </xsl:variable>
+    <xsl:message>
+        <xsl:text>!eval!evaluate!!</xsl:text>
+        <xsl:value-of select="./@expr"/>
+    </xsl:message>
     <xsl:value-of select="$prefix"/>
-    <xsl:value-of select="@expr"/>
+    <xsl:value-of select="./@expr"/>
 </xsl:template>
 
 <!-- Nothing else is defined for evaluation during setup  -->
 <xsl:template match="/" mode="evaluate"/>
+
+<xsl:template match="feedback" mode="serialize-feedback">
+    <xsl:variable name="feedback-rtf">
+        <xsl:apply-templates select="*" mode="body"/>
+    </xsl:variable>
+    <!-- serialize HTML as text, then escape as JSON -->
+    <xsl:call-template name="escape-json-string">
+        <xsl:with-param name="text">
+            <xsl:apply-templates select="exsl:node-set($feedback-rtf)" mode="serialize"/>
+        </xsl:with-param>
+    </xsl:call-template>
+</xsl:template>
 
 </xsl:stylesheet>
