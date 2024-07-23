@@ -710,9 +710,14 @@ def main():
     elif args.component == "datafile":
         ptx.datafiles_to_xml(xml_source, publication_file, stringparams, args.xmlid, dest_dir)
     elif args.component == "dynamic":
-        ptx.dynamic_substitutions(
-            xml_source, publication_file, stringparams, args.xmlid, dest_dir
-        )
+        if args.format in ["webwork"]:
+            ptx.dynamic_conversion(
+                xml_source, publication_file, stringparams, args.xmlid, dest_dir, args.format
+            )
+        else:
+            ptx.dynamic_substitutions(
+                xml_source, publication_file, stringparams, args.xmlid, dest_dir
+            )
     elif args.component == "all":
         if args.format == "html":
             ptx.html(

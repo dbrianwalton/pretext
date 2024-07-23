@@ -1175,6 +1175,43 @@ def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_d
     # restore working directory
     os.chdir(owd)
 
+################################
+#
+#  Dynamic Exercise WeBWorK Representations
+#
+################################
+def dynamic_conversion(xml_source, pub_file, stringparams, xmlid_root, dest_dir, format):
+    # Call the relevant xslt
+    ptx_xsl_dir = get_ptx_xsl_path()
+    extraction_xslt = os.path.join(ptx_xsl_dir, "convert-dynamic.xsl")
+    # support publisher file, subtree argument
+    if pub_file:
+        stringparams["publisher"] = pub_file
+    if xmlid_root:
+        stringparams["subtree"] = xmlid_root
+    # Build list of id's into a scratch directory/file
+    tmp_dir = get_temporary_directory()
+    id_filename = os.path.join(tmp_dir, "dynamic-ids.txt")
+    log.debug("Dynamic exercise id list temporarily in {}".format(id_filename))
+    log.debug("Dynamic exercise html files temporarily in {}".format(tmp_dir))
+    # This next call outputs the list of ids
+    # *and* produce a pile of files (the "standalone") pages
+    stringparams["format"] = format
+    xsltproc(extraction_xslt, xml_source, id_filename, tmp_dir, stringparams)
+    # Use the id file to know what we are transferring
+    id_file = open(id_filename, "r")
+    dynamic_exercises = [f.strip() for f in id_file.readlines() if not f.isspace()]
+
+    # filenames lead to placement in current working directory
+    # so change to temporary directory, and copy out
+    # TODO: just write to "dest_dir"?
+    owd = os.getcwd()
+    os.chdir(tmp_dir)
+    for dyn_ex in dynamic_exercises:
+        if os.path.exists(dyn_ex):
+            shutil.copy2(dyn_ex, dest_dir)
+   
+    os.chdir(owd)
 
 ################################
 #

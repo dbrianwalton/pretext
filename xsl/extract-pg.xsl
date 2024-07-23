@@ -1754,7 +1754,7 @@
     <xsl:if test="$b-human-readable">
         <xsl:call-template name="select-latex-macros"/>
     </xsl:if>
-    <xsl:apply-templates select="text()|var" />
+    <xsl:apply-templates select="text()|var|eval" />
     <!-- look ahead to absorb immediate clause-ending punctuation -->
     <xsl:apply-templates select="." mode="get-clause-punctuation" />
     <xsl:text>`]</xsl:text>
@@ -1771,7 +1771,7 @@
     <xsl:if test="$b-human-readable">
         <xsl:call-template name="select-latex-macros"/>
     </xsl:if>
-    <xsl:apply-templates select="text()|var" />
+    <xsl:apply-templates select="text()|var|eval" />
     <!-- look ahead to absorb immediate clause-ending punctuation -->
     <xsl:apply-templates select="." mode="get-clause-punctuation" />
     <xsl:text>```]&#xa;&#xa;</xsl:text>
@@ -1871,7 +1871,7 @@
     <xsl:if test="ancestor::ul|ancestor::ol">
         <xsl:call-template name="potential-list-indent" />
     </xsl:if>
-    <xsl:apply-templates select="text()|var|xref" />
+    <xsl:apply-templates select="text()|var|eval|xref" />
     <xsl:if test="not(following-sibling::*[self::mrow or self::intertext])">
         <!-- look ahead to absorb immediate clause-ending punctuation -->
         <!-- pass the enclosing environment (md) as the context       -->
