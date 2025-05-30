@@ -362,11 +362,12 @@
 <!-- Evaluation and Feedback                                    -->
 <!-- ========================================================== -->
 
-<!-- Deal with possibility of global checker for all blanks -->
+<!-- Deal with possibility of global checker for all blanks (only for correct responses) -->
 <xsl:template match="evaluation" mode="get-multianswer-check">
     <xsl:variable name="responseTree" select="../statement//fillin" />
     <xsl:if test="count($responseTree) > 1 and evaluate[@all='yes']/test">
         <xsl:apply-templates select="evaluate[@all='yes']/test" mode="create-test-feedback">
+            <xsl:with-param name="b-correct" select="'yes'"/>
             <xsl:with-param name="fillin" select="$responseTree"/>
         </xsl:apply-templates>
     </xsl:if>
@@ -379,17 +380,19 @@
 
 <!-- Default localized feedback strings. -->
 <xsl:template match="*" mode="get-default-feedback">
-    <xsl:param name="b-correct"/>
+    <xsl:param name="b-correct" select="'no'"/>
     <xsl:choose>
         <xsl:when test="$b-correct='yes'">
             <xsl:apply-templates select="." mode="type-name">
                 <xsl:with-param name="string-id" select="'correct'"/>
             </xsl:apply-templates>
+            <xsl:text>!</xsl:text>
         </xsl:when>
         <xsl:otherwise>
             <xsl:apply-templates select="." mode="type-name">
                 <xsl:with-param name="string-id" select="'incorrect'"/>
             </xsl:apply-templates>
+            <xsl:text>.</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
 </xsl:template>
@@ -478,7 +481,7 @@
     <!-- Default feedback for the blank. Always evaluates true.   -->
     <xsl:text>, {"feedback": "</xsl:text>
     <xsl:apply-templates select="." mode="get-default-feedback">
-        <xsl:with-param name="b-correct">yes</xsl:with-param>
+        <xsl:with-param name="b-correct" select="'no'"/>
     </xsl:apply-templates>
     <xsl:text>"}]</xsl:text>
 </xsl:template>
@@ -533,7 +536,7 @@
         </xsl:when>
         <!-- Otherwise match on order. -->
         <xsl:when test="ancestor::statement/../evaluation/evaluate[position() = $blankNum]">
-            <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[$blankNum]" mode="dynamic-feedback">
+            <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[position() = $blankNum]" mode="dynamic-feedback">
                 <xsl:with-param name="multiAns" select="$multiAns"/>
                 <xsl:with-param name="match-fillin" select="."/>
             </xsl:apply-templates>
