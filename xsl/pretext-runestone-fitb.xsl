@@ -395,19 +395,19 @@
 </xsl:template>
 
 <!-- Build feedback based on the #evaluate element. -->
- <xsl:template match="evaluate" mode="dynamic-feedback">
+<xsl:template match="evaluate" mode="dynamic-feedback">
     <xsl:param name="multiAns"/>
     <xsl:param name="match-fillin"/>
 
     <!-- Defend against name mismatches -->
-    <xsl:if test="@name and $match-fillin/@name and @name != $match-fillin/@name">
+    <xsl:if test="@name and $match-fillin/@name and not(@name = $match-fillin/@name)">
         <xsl:message>PTX:WARNING:   evaluate element for FITB matched by number has a mismatching blank name.</xsl:message>
     </xsl:if>
 
     <!-- First check is for correctness. -->
     <xsl:text>[</xsl:text>
     <xsl:choose>
-        <xsl:when test="string-length($multiAns)>0">
+        <xsl:when test="string-length($multiAns) > 0">
             <xsl:value-of select="$multiAns"/>
         </xsl:when>
         <xsl:when test="test[@correct='yes']">
@@ -462,17 +462,17 @@
             </xsl:choose>
             <xsl:text>, "feedback": "</xsl:text>
             <xsl:apply-templates select="." mode="get-default-feedback">
-                <xsl:with-param name="b-correct">yes</xsl:with-param>
+                <xsl:with-param name="b-correct" select="'yes'"/>
             </xsl:apply-templates>
             <xsl:text>"}</xsl:text>
         </xsl:otherwise>
     </xsl:choose>
 
     <!-- Now add additional checks for feedback. -->
-    <xsl:for-each select="exsl:node-set($check)//test[not(@correct='yes')]">
+    <xsl:for-each select="test[not(@correct='yes')]">
         <xsl:text>, </xsl:text>
         <xsl:apply-templates select="." mode="create-test-feedback">
-            <xsl:with-param name="fillin" select="$curFillIn"/>
+            <xsl:with-param name="fillin" select="$match-fillin"/>
         </xsl:apply-templates>
     </xsl:for-each>
     <!-- Default feedback for the blank. Always evaluates true.   -->
@@ -495,7 +495,7 @@
     </xsl:variable>
 
     <!-- we need to know which #evaluate matches the #fillin -->
-    <xsl:variable name="evaluate-idx">
+    <xsl:variable name="evaluate-index">
         <xsl:choose>
             <xsl:when test="ancestor::statement/../evaluation/evaluate[@name = $fillinName]">
                 <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[@name = $fillinName]" mode="get-index"/>
@@ -528,14 +528,14 @@
         <xsl:when test="ancestor::statement/../evaluation/evaluate[@name = $fillinName]">
             <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[@name = $fillinName]" mode="dynamic-feedback">
                 <xsl:with-param name="multiAns" select="$multiAns"/>
-                <xsl:with-param name="base-fillin" select="."/>
+                <xsl:with-param name="match-fillin" select="."/>
             </xsl:apply-templates>
         </xsl:when>
         <!-- Otherwise match on order. -->
         <xsl:when test="ancestor::statement/../evaluation/evaluate[position() = $blankNum]">
             <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[$blankNum]" mode="dynamic-feedback">
                 <xsl:with-param name="multiAns" select="$multiAns"/>
-                <xsl:with-param name="base-fillin" select="."/>
+                <xsl:with-param name="match-fillin" select="."/>
             </xsl:apply-templates>
         </xsl:when>
         <!-- No check matches: Make blank default. -->
@@ -557,10 +557,7 @@
                 </test>
             </evaluate>
         </xsl:otherwise>
-    </xsl:choose>    
-    <xsl:apply-templates select="ancestor::statement/../evaluation/evaluate[position() = $evaluate-index" mode="dynamic-feedback">
-
-    </xsl:apply-templates>
+    </xsl:choose>
 </xsl:template>
 
 <xsl:template match="test" mode="create-test-feedback">
@@ -589,7 +586,7 @@
             </xsl:apply-templates>
         </xsl:otherwise>
     </xsl:choose>
-<xsl:text>"}</xsl:text>
+    <xsl:text>"}</xsl:text>
 </xsl:template>
 
 <!-- Template for simple answer checkers: no interaction between different fillins. -->
