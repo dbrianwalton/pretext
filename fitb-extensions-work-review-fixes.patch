@@ -1,0 +1,884 @@
+diff --git a/doc/guide/author/topics.xml b/doc/guide/author/topics.xml
+index 492bba4b..c41c3ee1 100644
+--- a/doc/guide/author/topics.xml
++++ b/doc/guide/author/topics.xml
+@@ -2430,7 +2430,7 @@
+ 
+             <p>The body of the <tag>statement</tag> is the same as for any exercise-like statement, with the addition of two elements of markup. A <tag>fillin</tag> is placed at the location a blank would be required for the reader's response. Details for this element are described in the next paragraph. When the question includes a <tag>setup</tag>, content can reference the string or TeX representation of the object (if defined) by using a <tag>eval</tag> element, where the name of the object is provided by a <attr>object</attr> attribute.</p>
+ 
+-            <p>The <tag>fillin</tag> element is required to have an <attr>answer</attr> attribute that contains a literal answer that would be evaluated as correct, in the case that the question has a known, static, valid answer, or an <attr>ansobj</attr> attribute that contains the variable name of a dynamically generated object representing a correct answer, in the case that the problem has an associated <tag>setup</tag>. In addition, the <tag>fillin</tag> is required to have a <c>@mode</c> that characterizes the mode by which the submitted answer will be parsed, or a <c>@parser</c> that defines a javascript function that performs the parsing. Current possible modes are <c>string</c>, <c>number</c>, and <c>math</c> (only for the dynamic implementation). The <tag>fillin</tag> element may have a <attr>width</attr> attribute specifying the number of characters for the static-version blank. For questions that involve dynamic evaluation, a <attr>name</attr> attribute may be used to identify a variable name that will reference the reader's response during dynamic evaluation of <em>other</em> blanks. (A standard <c>ans</c> variable will always be available in the context of each individual response's evaluation.)</p>
++            <p>The <tag>fillin</tag> element is required to have an <attr>answer</attr> attribute that contains a literal answer that would be evaluated as correct, in the case that the question has a known, static, valid answer, or an <attr>ansobj</attr> attribute that contains the variable name of a dynamically generated object representing a correct answer, in the case that the problem has an associated <tag>setup</tag>. In addition, the <tag>fillin</tag> should have a <c>@mode</c> that characterizes the mode by which the submitted answer will be parsed, or a <c>@parser</c> that defines a Javascript function that performs the parsing; if <c>@mode</c> is omitted and no <c>@parser</c> is given, the submitted answer is parsed as a plain string. Current possible modes are <c>string</c>, <c>number</c>, and <c>math</c> (only for the dynamic implementation). The <tag>fillin</tag> element may have a <attr>width</attr> attribute specifying the number of characters for the static-version blank. For questions that involve dynamic evaluation, a <attr>name</attr> attribute may be used to identify a variable name that will reference the reader's response during dynamic evaluation of <em>other</em> blanks. (A standard <c>ans</c> variable will always be available in the context of each individual response's evaluation.)</p>
+ 
+             <p>The <tag>evaluation</tag> block will have a sequence of <tag>evaluate</tag> elements, one associated with each of the corresponding <tag>fillin</tag> elements appearing in the <tag>statement</tag>. By default, the association is by order. If each <tag>fillin</tag> has an associated <attr>name</attr>, the association does not need to be in order. Within each <tag>evaluate</tag> element, there will be a sequence of <tag>test</tag> elements that define a comparison rule for the test and the associated feedback provided when the test evaluates as true. Default behavior is that the <attr>answer</attr> or <attr>ansobj</attr> attribute of the corresponding <tag>fillin</tag> is used for comparison to evaluate a correct response. If the author wishes to override this default or wishes to provide specific feedback for a correct response which will also be used for the automatic solution for static versions, the author will identify one <tag>test</tag> element with the attribute <attr>correct="yes"</attr>.</p>
+ 
+@@ -2444,7 +2444,7 @@
+ 
+             <p>Within the <tag>setup</tag>, the author provides statements that will initialize Javascript objects that will be accessible in the <tag>statement</tag>, <tag>solution</tag>, and <tag>evaluation</tag> elements. The author can provide Javascript code within a <tag>setupScript</tag> child of the <tag>setup</tag>. It is likely that the script contents will need to be escaped to avoid XML conflicts, for example by individually escaping problematic characters or surrounding the code with <c>&lt;![CDATA[...]]&gt;</c>. In the context in which the script runs, there is an object <c>v</c> representing the dynamic variable namespace. Any object that the author wants to access should be created as a member of that object, such as <c>v.myObject = ...</c>. The name <c>myObject</c> could then be used (without reference to <c>v</c>) in an <attr>ansobj</attr> attribute of a <tag>fillin</tag>, in an <attr>object</attr> attribute of an <tag>eval</tag> or directly in a <tag>jscmp</tag> comparison.</p>
+ 
+-            <p>To import other Javascript files for use in an exercise, the <tag>setup</tag> may include an optional <tag>jsimports</tag> block. Its contents consist of a sequence of one or more <tag>jslibrary</tag> elements. Each <tag>jslibrary</tag> element will use <attr>source</attr> containing the relative path to the file if the Javascript file is contained locally in the project's assets directory. Alternatively, if the Javascript file is hosted online, the author should use <attr>url</attr> containing the full URL to the included file. Only objects that are explicitly exported in the file using the Javascript <c>export</c> command will be accessible to the scripts and evaluation environments, as each included library is imported dynamically using the Javascript <c>import</c> command by the Runestone component.</p>
++            <p>To import other Javascript files for use in an exercise, the <tag>setup</tag> may include an optional <tag>jsimports</tag> block. Its contents consist of a sequence of one or more <tag>jslibrary</tag> elements. Each <tag>jslibrary</tag> element will use <attr>source</attr> containing the relative path to the file if the Javascript file is contained locally in the project's external directory. Alternatively, if the Javascript file is hosted online, the author should use <attr>url</attr> containing the full URL to the included file. Only objects that are explicitly exported in the file using the Javascript <c>export</c> command will be accessible to the scripts and evaluation environments, as each included library is imported dynamically using the Javascript <c>import</c> command by the Runestone component.</p>
+ 
+             <p>An imported library has to work in two quite different places. In HTML the Runestone component imports it in the reader's browser. But a static version of the same exercise has fixed content, which means the setup has to be run earlier to create a substitution table, outside any browser, using <c>node</c>. In order for this to match the browser's output, a library must be a genuine <init>ES</init> module, exporting with <c>export</c>; a bundle in some other format may load in one place and not the other. Second, a library that reaches for <c>window</c>, <c>document</c>, or anything else that only exists in a browser will fail when the static version is built, even though the interactive version works.</p>
+ 
+@@ -2458,9 +2458,9 @@
+             &lt;/dynamics&gt;
+             </pre>
+ 
+-            <p>Approval is given one library at a time, rather than once for the whole project. A build that meets an unapproved <attr>url</attr> stops and reports which ones need to be added. Interactive <init>HTML</init> output is not gated this way, since the code then runs in a reader's browser under the usual protections rather than as the author.</p>
++            <p>Approval is given one library at a time, rather than once for the whole project. A build that meets an unapproved <attr>url</attr> stops and reports which ones need to be added. Interactive <init>HTML</init> output is not gated this way, since the code then runs in a reader's browser under the usual protections rather than as the author. See <xref ref="publication-file-dynamics"/> for the publisher-facing reference entry for this option.</p>
+ 
+-            <p>If the author wishes to provide a pre-formed Javascript object as part of configuration for the exercise, the <tag>setup</tag> can also include an <tag>config-json</tag> element containing a JSON structure defining all elements of the object. This object is then accessible within the script using the name <c>v._config</c> or just <c>_config</c>. It is also available within evaluation environments.</p>
++            <p>If the author wishes to provide a pre-formed Javascript object as part of configuration for the exercise, the <tag>setup</tag> can also include a <tag>config-json</tag> element containing a JSON structure defining all elements of the object. This object is then accessible within the script using the name <c>v._config</c> or just <c>_config</c>. It is also available within evaluation environments.</p>
+ 
+             <p>To provide randomization, a random number generator based on the current seed is available in the <tag>setupScript</tag> using the object name <c>RNG</c>. The <c>RNG</c> object includes the following methods for generating various types of random values.
+                 <ol>
+diff --git a/doc/guide/publisher/publication-file.xml b/doc/guide/publisher/publication-file.xml
+index d3156d1e..fea765fd 100644
+--- a/doc/guide/publisher/publication-file.xml
++++ b/doc/guide/publisher/publication-file.xml
+@@ -1296,4 +1296,42 @@
+             </p>
+         </subsection>
+     </section>
++
++    <section xml:id="publication-file-dynamics">
++        <title>Dynamic Exercise Options</title>
++        <idx>dynamic exercise publisher options</idx>
++        <idx><h>publisher options</h><h>dynamic exercises</h></idx>
++
++        <introduction>
++            <p>
++                A fill-in-the-blank exercise may import a Javascript library to generate its
++                content, described for authors in <xref ref="fill-in-exercises"/>.  In HTML that
++                library runs in the reader's browser.  A static conversion has no browser, so the
++                same library instead runs once at build time, under Node, with the privileges of
++                whoever is building the book.  The option here is what makes that static build
++                willing to run a library it did not ship with the project.
++            </p>
++        </introduction>
++
++        <subsection xml:id="publication-file-dynamics-remote-libraries">
++            <title>Approved Remote Libraries</title>
++            <p>
++                A dynamic exercise may name a Javascript library kept with the project
++                (<attr>source</attr>) or fetched from elsewhere (<attr>url</attr>).  A library kept
++                with the project needs no approval, since it is already the author's own code.  A
++                library named by <attr>url</attr> is different: a static build would otherwise run
++                unvetted, unpinned code as whoever is building the book, so it refuses to do so
++                unless the publisher lists that exact URL as approved,
++                <cd>
++                    <cline>/publication/dynamics/remote-libraries/library/@url</cline>
++                </cd>
++                repeated once per library.  Approval is per-URL rather than a blanket switch, so
++                approving one library never extends to a different one an exercise starts importing
++                later, and only a secure URL (<c>https://</c>) may ever be approved.  HTML output is
++                not gated this way, since the library then runs in the reader's browser under the
++                usual protections rather than as the person building the book.  See
++                <xref ref="fill-in-exercises"/> for the author-facing side of this feature.
++            </p>
++        </subsection>
++    </section>
+ </chapter>
+diff --git a/examples/sample-article/gen/dynamic_subs/dynamic_substitutions.xml b/examples/sample-article/gen/dynamic_subs/dynamic_substitutions.xml
+index a6f89a4e..1b912645 100644
+--- a/examples/sample-article/gen/dynamic_subs/dynamic_substitutions.xml
++++ b/examples/sample-article/gen/dynamic_subs/dynamic_substitutions.xml
+@@ -16,12 +16,12 @@
+   </dynamic-substitution>
+   <dynamic-substitution id="find-row-echelon">
+     <eval-subst obj="baseMatrix"><latex>\begin{bmatrix}
+--5 &amp; 12 &amp; 75 \\ 
+--3 &amp; 7 &amp; 44 \\ 
++-5 &amp; 12 &amp; 75 \\
++-3 &amp; 7 &amp; 44 \\
+ -32 &amp; 77 &amp; 481\end{bmatrix}</latex><plain>[[-5, 12, 75], [-3, 7, 44], [-32, 77, 481]]</plain></eval-subst>
+     <eval-subst obj="rrefMatrix"><latex>\begin{bmatrix}
+-1 &amp; 0 &amp; -3 \\ 
+-0 &amp; 1 &amp; 5 \\ 
++1 &amp; 0 &amp; -3 \\
++0 &amp; 1 &amp; 5 \\
+ 0 &amp; 0 &amp; 0\end{bmatrix}</latex><plain>[[1, 0, -3], [0, 1, 5], [0, 0, 0]]</plain></eval-subst>
+   </dynamic-substitution>
+ </xml>
+\ No newline at end of file
+diff --git a/examples/sample-article/media/code/fitb/btm-matrix-library.js b/examples/sample-article/media/code/fitb/btm-matrix-library.js
+index e9e49d85..f0105b45 100644
+--- a/examples/sample-article/media/code/fitb/btm-matrix-library.js
++++ b/examples/sample-article/media/code/fitb/btm-matrix-library.js
+@@ -130,7 +130,7 @@ class Matrix {
+     const rows = this.#data.map(row => row.join(' & '));
+ 
+     let texString = '\\begin{bmatrix}\n';
+-    texString += rows.join(' \\\\ \n');
++    texString += rows.join(' \\\\\n');
+     texString += '\\end{bmatrix}';
+ 
+     return texString;
+diff --git a/examples/sample-article/sample-article.xml b/examples/sample-article/sample-article.xml
+index 899efe78..dadb8349 100644
+--- a/examples/sample-article/sample-article.xml
++++ b/examples/sample-article/sample-article.xml
+@@ -10306,64 +10306,64 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
+                     </evaluation>
+                 </exercise>
+                 <exercise label="find-row-echelon">
+-                  <setup>
+-                    <jsimports>
+-                      <jslibrary source="code/fitb/btm-matrix-library.js" />
+-                    </jsimports>
+-                    <config-json>{ "rows": 3, "cols": 3, "rank": 2 }</config-json>
+-                    <setupScript>
+-                      <![CDATA[ 
+-                      v.baseMatrix = getRandomMatrix(RNG, _config.rows, _config.cols, _config.rank, true);
+-                      v.rrefMatrix = getRREF(v.baseMatrix);
+-                      ]]>
+-                    </setupScript>
+-                  </setup>
+-                  <statement>
+-                    <p>
+-                      Consider the matrix defined by
+-                      <md>
+-                        A = <eval obj="baseMatrix"/>
+-                      </md>
+-                      Find the reduced row echelon form of <m>A</m>.
+-                    </p>
+-                    <p>
+-                      <m>\mathrm{rref}(A) = </m> <fillin name="rref" mode="math" parser="parseMatrix" ansobj="rrefMatrix"/>
+-                    </p>
+-                    <p>
+-                      A matrix is entered by listing the rows separated by commas between brackets [ and ], and for each row listing entries separated by commas between additional brackets.
+-                      The matrix
+-                      <m>\begin{bmatrix} 1 \amp 3 \amp 5 \\ 2 \amp 4 \amp 6 \end{bmatrix}</m>
+-                      would be entered as <c>[ [1, 3, 5], [2, 4, 6] ]</c>.
+-                    </p>
+-                  </statement>
+-                  <evaluation>
+-                    <evaluate name="rref">
+-                      <test correct="yes">
+-                        <jscmp>
+-                          testMatrixEqual(ans, rrefMatrix)
+-                        </jscmp>
+-                      </test>
+-                      <test>
+-                        <jscmp>
+-                          isRowEchelon(ans)
+-                        </jscmp>
+-                        <jscmp>
+-                          testRowEquivalent(ans, baseMatrix)
+-                        </jscmp>
+-                        <feedback>
+-                            <p>Your matrix <md><eval obj="ans"/></md> is a valid row echelon form that is row equivalent to the original matrix, but it is not in reduced row echelon form.</p>
+-                        </feedback>
+-                      </test>
+-                    </evaluate>
+-                  </evaluation>
+-                  <solution>
+-                    <p>
+-                      Row reduction of <m>A</m> gives
+-                      <md>
+-                        \mathrm{rref}(A) = <eval obj="rrefMatrix"/>
+-                      </md>
+-                    </p>
+-                  </solution>
++                    <statement>
++                        <p>
++                            Consider the matrix defined by
++                            <md>
++                                A = <eval obj="baseMatrix"/>
++                            </md>
++                            Find the reduced row echelon form of <m>A</m>.
++                        </p>
++                        <p>
++                            <m>\mathrm{rref}(A) = </m> <fillin name="rref" mode="math" parser="parseMatrix" ansobj="rrefMatrix"/>
++                        </p>
++                        <p>
++                            A matrix is entered by listing the rows separated by commas between brackets [ and ], and for each row listing entries separated by commas between additional brackets.
++                            The matrix
++                            <m>\begin{bmatrix} 1 \amp 3 \amp 5 \\ 2 \amp 4 \amp 6 \end{bmatrix}</m>
++                            would be entered as <c>[ [1, 3, 5], [2, 4, 6] ]</c>.
++                        </p>
++                    </statement>
++                    <solution>
++                        <p>
++                            Row reduction of <m>A</m> gives
++                            <md>
++                                \mathrm{rref}(A) = <eval obj="rrefMatrix"/>
++                            </md>
++                        </p>
++                    </solution>
++                    <setup>
++                        <jsimports>
++                            <jslibrary source="code/fitb/btm-matrix-library.js"/>
++                        </jsimports>
++                        <config-json>{ "rows": 3, "cols": 3, "rank": 2 }</config-json>
++                        <setupScript>
++                            <![CDATA[
++                            v.baseMatrix = getRandomMatrix(RNG, _config.rows, _config.cols, _config.rank, true);
++                            v.rrefMatrix = getRREF(v.baseMatrix);
++                            ]]>
++                        </setupScript>
++                    </setup>
++                    <evaluation>
++                        <evaluate name="rref">
++                            <test correct="yes">
++                                <jscmp>
++                                    testMatrixEqual(ans, rrefMatrix)
++                                </jscmp>
++                            </test>
++                            <test>
++                                <jscmp>
++                                    isRowEchelon(ans)
++                                </jscmp>
++                                <jscmp>
++                                    testRowEquivalent(ans, baseMatrix)
++                                </jscmp>
++                                <feedback>
++                                    <p>Your matrix <md><eval obj="ans"/></md> is a valid row echelon form that is row equivalent to the original matrix, but it is not in reduced row echelon form.</p>
++                                </feedback>
++                            </test>
++                        </evaluate>
++                    </evaluation>
+                 </exercise>
+             </exercises>
+         </section>
+diff --git a/pretext/lib/common.py b/pretext/lib/common.py
+index 35b51993..33e7bcad 100644
+--- a/pretext/lib/common.py
++++ b/pretext/lib/common.py
+@@ -122,6 +122,36 @@ _XSL_MESSAGE_LEVELS = {
+     'DEBUG':     DEBUG_LEVEL,
+ }
+ 
++# Route one already-formatted message line to the severity named by its
++# leading "PTX:TOKEN", exactly the correspondence documented in the
++# "Messages and Severity" chapter of the Guide.  Shared by every consumer
++# of a PreTeXt-style message stream: the stylesheet relay in xsltproc()
++# below, and any subprocess (Node, say) that writes the same convention to
++# its own stderr.  A single definition means a change to the table, or to
++# how a malformed token is treated, only has to happen once.
++def log_relayed_message(message, prefix=""):
++    # The token is always read from the message itself; "prefix" only
++    # decorates what actually reaches the log (xsltproc()'s "* ", say),
++    # so a caller's presentation choice can never hide a token from the
++    # severity lookup.
++    token = re.match(r'\s*PTX:([\w-]+)', message)
++    display = prefix + message
++    if token:
++        level = _XSL_MESSAGE_LEVELS.get(token.group(1).upper())
++        if level is not None:
++            log.log(level, display)
++        else:
++            # a well-formed but unknown token (e.g. a "PTX:FO-TODO"
++            # work marker); keep it quiet rather than mis-leveling
++            log.debug(display)
++    elif re.match(r'\s*(?i:ptx|warning|error|fatal|bug|deprecate)\b', message):
++        # looks like it meant to carry a severity token but is
++        # malformed (an authoring slip); flag it
++        log.bug("a PreTeXt-style message has a malformed severity token: {}".format(display))
++    else:
++        # genuinely tokenless (e.g. a continuation line)
++        log.info(display)
++
+ import re
+ import traceback
+ import os
+@@ -290,23 +320,7 @@ def xsltproc(xsl, xml, result, output_dir=None, stringparams={}):
+                 log.info("messages from the log for XSL processing (prefaced with a *):")
+             # print out any unprinted messages from error_log
+             for line in xslt.error_log[start:end]:
+-                message = "* {}".format(line.message)
+-                token = re.match(r'\s*PTX:([\w-]+)', line.message)
+-                if token:
+-                    level = _XSL_MESSAGE_LEVELS.get(token.group(1).upper())
+-                    if level is not None:
+-                        log.log(level, message)
+-                    else:
+-                        # a well-formed but unknown token (e.g. a "PTX:FO-TODO"
+-                        # work marker); keep it quiet rather than mis-leveling
+-                        log.debug(message)
+-                elif re.match(r'\s*(?i:ptx|warning|error|fatal|bug|deprecate)\b', line.message):
+-                    # looks like it meant to carry a severity token but is
+-                    # malformed (a stylesheet-authoring slip); flag it
+-                    log.bug("a PreTeXt stylesheet message has a malformed severity token: {}".format(line.message))
+-                else:
+-                    # genuinely tokenless (e.g. a continuation line)
+-                    log.info(message)
++                log_relayed_message(line.message, prefix="* ")
+             start = end
+         if texc is None:
+             log.info("successful application of {}".format(xsl))
+@@ -841,6 +855,70 @@ def copy_managed_directories(build_dir, external_abs=None, generated_abs=None, d
+         shutil.copytree(data_abs, data_dir)
+ 
+ 
++def copy_managed_resources(build_dir, external_abs=None, external_resources=None,
++                            generated_abs=None, generated_resources=None,
++                            data_abs=None, data_resources=None):
++    # A narrower sibling of copy_managed_directories(), for a caller that
++    # knows in advance the small, specific set of files it needs from a
++    # managed directory, rather than everything the project keeps there --
++    # the dynamic-substitution build is the first such caller: it already
++    # has, from the extraction JSON, the exact list of project-local
++    # libraries an exercise's setup imports.
++    #
++    # Kept flat and three-times-repeated on purpose, parallel to
++    # copy_managed_directories() immediately above: an "_abs" path and its
++    # matching "_resources" list, one pair per managed directory, rather
++    # than a grouping object.  Nothing else in this file groups arguments
++    # that way, and three pairs is not yet enough to be worth a new shape
++    # only this function would use.
++    #
++    # Each "_resources" list is an iterable of paths relative to its own
++    # "_abs" root (the same convention the "_abs" path itself uses).
++    # Rather than copying each file individually, this copies the
++    # *directory* immediately containing each one -- shutil.copytree() per
++    # directory, exactly as copy_managed_directories() does for the whole
++    # tree -- so that a library made of several files under one directory,
++    # referring to each other with relative imports, still has its
++    # siblings available.  A file's own imports elsewhere in the project
++    # are not discovered; only its containing directory is reproduced. A
++    # resource with no containing directory of its own (one that sits at
++    # the root of its managed directory) copies that whole root.
++    #
++    # A "_resources" list without its "_abs" path is refused outright,
++    # rather than silently copying nothing: that combination cannot
++    # reflect what the caller meant, and finding out now is better than a
++    # quietly incomplete build.
++    def _copy_resources(root_abs, resources, dest_name):
++        if not resources:
++            if root_abs is None:
++                return
++        elif root_abs is None:
++            raise ValueError(
++                "{}_resources was given without {}_abs to resolve it against"
++                .format(dest_name, dest_name)
++            )
++        # Folders are de-duplicated with a set before any copying happens,
++        # so two resources sharing a directory (or naming the same one
++        # directly) cost one copytree() call, not two.  Nesting is still
++        # possible -- "code/fitb/a.js" and "code/fitb/sub/b.js" dedupe to
++        # two directories, one inside the other -- so, unlike
++        # copy_managed_directories(), this copies with
++        # dirs_exist_ok=True: a redundant copy of an already-copied
++        # subdirectory should merge quietly, not raise, since overlap
++        # here is an expected consequence of the resource list rather
++        # than a sign the build directory was not actually fresh.
++        folders = {os.path.dirname(resource) for resource in resources}
++        dest_root = os.path.join(build_dir, dest_name)
++        for folder in folders:
++            src = os.path.join(root_abs, folder)
++            dst = os.path.join(dest_root, folder)
++            shutil.copytree(src, dst, dirs_exist_ok=True)
++
++    _copy_resources(external_abs, external_resources, "external")
++    _copy_resources(generated_abs, generated_resources, "generated")
++    _copy_resources(data_abs, data_resources, "data")
++
++
+ def copy_build_directory(build_dir, dest_dir):
+     '''Copy final product from build directory into desired destination directory'''
+ 
+diff --git a/pretext/lib/pretext.py b/pretext/lib/pretext.py
+index bdd5e007..5c408a3c 100644
+--- a/pretext/lib/pretext.py
++++ b/pretext/lib/pretext.py
+@@ -1122,11 +1122,26 @@ def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_d
+ 
+     # An exercise may pull in a Javascript library kept with the project, and
+     # the extraction stylesheet writes the path to it the same way it writes
+-    # the path for HTML: relative, and led by the "external" directory.  So
+-    # copy the external tree into the temporary directory and let the script
+-    # resolve against that, rather than teaching it a second path scheme.
++    # the path for HTML: relative, and led by the "external" directory.  The
++    # JSON just written already names every project-local library any
++    # exercise in the document imports (one xsltproc pass, over the whole
++    # tree, ahead of the one Node process below that will import them all),
++    # so only those specific libraries -- not the whole external directory --
++    # need to be reproduced for the script to resolve against.
++    import json
++    external_directory_prefix = "external/"
++    with open(json_file, encoding="utf-8") as f:
++        dynamic_setup = json.load(f)
++    local_libraries = set()
++    for exercise in dynamic_setup.get("exercises", []):
++        for specifier in exercise.get("exercise_imports", []):
++            if specifier.startswith(external_directory_prefix):
++                local_libraries.add(specifier[len(external_directory_prefix):])
++
+     _, external_dir = common.get_managed_directories(xml_source, pub_file)
+-    common.copy_managed_directories(tmp_dir, external_abs=external_dir)
++    common.copy_managed_resources(
++        tmp_dir, external_abs=external_dir, external_resources=local_libraries
++    )
+ 
+     # Use Node (Deno) to process the JSON to create the XML substitution file
+     log.info("Generating substitutions.")
+@@ -1159,23 +1174,19 @@ def dynamic_substitutions(xml_source, pub_file, stringparams, xmlid_root, dest_d
+     #   1  the file is usable, but some substitutions are error markers
+     #   2  no usable file was written at all
+     #
+-    # Relay whatever was reported, at the severity the script asked for.
+-    line_log = log.error
++    # Relay whatever was reported, at the severity its own "PTX:TOKEN"
++    # asks for, through the same routing common.py uses for a stylesheet's
++    # relayed messages -- one table, one definition of "malformed token",
++    # for every PreTeXt-style message stream, not just this one.
+     for line in result.stderr.splitlines():
+         if not line.strip():
+             continue
+-        if line.startswith("PTX:ERROR"):
+-            line_log = log.error
+-        elif line.startswith("PTX:WARNING"):
+-            line_log = log.warning
+-        elif line.startswith("PTX:ADVICE"):
+-            line_log = log.info
+-        line_log(line)
++        common.log_relayed_message(line)
+     if result.returncode == 1:
+         # Reported, not raised.  Well-formed file created, but some exercises did not
+         # evaluate and their substitutions contain error place-holders
+         log.error(
+-            "PTX:ERROR:   Some dynamic substitutions could not be generated.  The "
++            "Some dynamic substitutions could not be generated.  The "
+             "affected exercises will read \"[ERROR generating substitution]\" in "
+             "static output.  See the messages above."
+         )
+diff --git a/schema/pretext-validation-plus.xsl b/schema/pretext-validation-plus.xsl
+index e9cdebe5..a0266c58 100644
+--- a/schema/pretext-validation-plus.xsl
++++ b/schema/pretext-validation-plus.xsl
+@@ -196,44 +196,16 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
+ </xsl:template>
+ 
+ <!-- A "jslibrary" says where a dynamic exercise's Javascript extension library    -->
+-<!-- comes from: @source for one of the project's own assets, @url for   -->
+-<!-- one fetched from elsewhere.  The schema requires exactly one.  -->
+-<!--                                                                     -->
+-<!-- Each check below is on structure.       -->
++<!-- comes from: @source for one of the project's own external directory, @url for -->
++<!-- one fetched from elsewhere.  The schema requires exactly one.                 -->
++<!--                                                                               -->
++<!-- Each check below is on structure.                                             -->
+ <xsl:template match="jslibrary">
+     <!-- A scheme is a name, then a colon, before any slash.  -->
+     <!-- So "https://x" has scheme and "code/lib.js" does not, and neither does "a/b:c".      -->
+     <xsl:variable name="url-scheme" select="(substring-before(@url, ':') != '') and not(contains(substring-before(@url, ':'), '/'))"/>
+     <xsl:variable name="source-scheme" select="(substring-before(@source, ':') != '') and not(contains(substring-before(@source, ':'), '/'))"/>
+ 
+-    <!-- Neither location provided -->
+-    <xsl:if test="not(@source) and not(@url)">
+-        <xsl:apply-templates select="." mode="messaging">
+-            <xsl:with-param name="severity" select="'warn'"/>
+-            <xsl:with-param name="message-id" select="'jslibrary-no-location'"/>
+-            <xsl:with-param name="message">
+-                <xsl:text>A &lt;jslibrary&gt; needs either a @source, naming one of the project's&#xa;</xsl:text>
+-                <xsl:text>own assets, or a @url, naming a library to fetch.  This one has&#xa;</xsl:text>
+-                <xsl:text>neither, so the import will be ignored and the exercise's setup will&#xa;</xsl:text>
+-                <xsl:text>run without it.</xsl:text>
+-            </xsl:with-param>
+-        </xsl:apply-templates>
+-    </xsl:if>
+-
+-    <!-- Both @source and @url are given.     -->
+-    <xsl:if test="@source and @url">
+-        <xsl:apply-templates select="." mode="messaging">
+-            <xsl:with-param name="severity" select="'warn'"/>
+-            <xsl:with-param name="message-id" select="'jslibrary-both-locations'"/>
+-            <xsl:with-param name="message">
+-                <xsl:text>A &lt;jslibrary&gt; carries both a @source and a @url, which name two&#xa;</xsl:text>
+-                <xsl:text>different libraries.  Only the @source will be used, and the @url&#xa;</xsl:text>
+-                <xsl:text>will be ignored silently.  Keep the one that is wanted, or write a&#xa;</xsl:text>
+-                <xsl:text>second &lt;jslibrary&gt; if both are.</xsl:text>
+-            </xsl:with-param>
+-        </xsl:apply-templates>
+-    </xsl:if>
+-
+     <!-- A @source looks like a @url   -->
+     <xsl:if test="@source and $source-scheme">
+         <xsl:apply-templates select="." mode="messaging">
+@@ -241,7 +213,7 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
+             <xsl:with-param name="message-id" select="'jslibrary-source-with-scheme'"/>
+             <xsl:with-param name="message">
+                 <xsl:text>The @source of a &lt;jslibrary&gt; is a location within the project's&#xa;</xsl:text>
+-                <xsl:text>assets, but appears to be a url.&#xa;</xsl:text>
++                <xsl:text>external directory, but appears to be a url.&#xa;</xsl:text>
+                 <xsl:text>This one begins "</xsl:text>
+                 <xsl:value-of select="substring-before(@source, ':')"/>
+                 <xsl:text>:", which names a library somewhere else.&#xa;</xsl:text>
+@@ -273,7 +245,10 @@ along with MathBook XML.  If not, see <http://www.gnu.org/licenses/>.
+                 <xsl:text>The @url of a &lt;jslibrary&gt; must begin with "https://".  A static&#xa;</xsl:text>
+                 <xsl:text>build runs an imported library on the machine building the book,&#xa;</xsl:text>
+                 <xsl:text>not sandboxed in a reader's browser, so source is fetched only over&#xa;</xsl:text>
+-                <xsl:text>a channel that is both authenticated and private.  This would also break the html version if the book is served with "https://".</xsl:text>
++                <xsl:text>a channel that is both authenticated and private.  An insecure&#xa;</xsl:text>
++                <xsl:text>"http://" @url would also break the HTML version, once the book&#xa;</xsl:text>
++                <xsl:text>itself is served over "https://", since browsers block insecure&#xa;</xsl:text>
++                <xsl:text>subresource loads on a secure page.</xsl:text>
+             </xsl:with-param>
+         </xsl:apply-templates>
+     </xsl:if>
+diff --git a/script/dynsub/dynamic_extract.mjs b/script/dynsub/dynamic_extract.mjs
+index 8c1b99c6..547d7880 100644
+--- a/script/dynsub/dynamic_extract.mjs
++++ b/script/dynsub/dynamic_extract.mjs
+@@ -9,7 +9,7 @@
+ 
+ // Node style of import
+ import { RNG } from 'btm-expressions/src/random.js';
+-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
++import { readFileSync, writeFileSync, mkdirSync, realpathSync } from 'node:fs';
+ import { pathToFileURL } from 'node:url';
+ import { dirname, join, relative, resolve } from 'node:path';
+ import { parseArgs } from 'node:util';
+@@ -125,15 +125,16 @@ const usableNames = function (obj) {
+ // Library imports
+ // ---------------------------------------------------------------------------
+ 
+-// Modules are cached by the specifier that appears in the JSON
+-// is cached between runs.
+-// A library shared by several exercises is fetched once per run.
++// Modules are cached by the specifier that appears in the JSON import
++// path, so a library shared by several exercises is fetched only once
++// per run.  The cache is just this process's memory, so nothing
++// persists between separate runs of the script.
+ const moduleCache = new Map();
+ 
+ // All proposed external libraries are judged once for whether to import them.
+ // Use an allowlist of schemes. Only "https" is  permitted now, and everything else is rejected.
+-// Local files can be referenced relative to the project's assets put in 'external'.
+-const SCHEME = /^([A-Za-z][A-Za-z0-9+.-]+):/;
++// Local files can be referenced relative to the project's external directory.
++const SCHEME = /^([A-Za-z][A-Za-z0-9+.-]*):/;
+ 
+ const SPECIFIER_BTM = "btm";
+ const SPECIFIER_LOCAL = "local";
+@@ -149,10 +150,28 @@ const SPECIFIER_OFF_PROJECT = "off-project";
+ // prefix itself, which is what makes it the same relative string HTML uses.
+ // Only files that resolve inside this will be accessible.
+ //
+-// Resolve the path and see if it stays inside the project.
++// Resolve the path lexically first.  Then, if the target actually exists,
++// resolve it again through realpathSync, which follows symlinks: a symlink
++// planted inside the copied external tree but pointing outside it would
++// otherwise pass the lexical check while reading a file the project does
++// not own.  A specifier that does not exist yet (an author's typo, most
++// likely) has no symlink to resolve, so it falls back to the lexical
++// answer and is left for the ordinary "file not found" error to report.
+ const withinProject = function (specifier) {
+-    const path = relative(baseDirectory, resolve(baseDirectory, specifier));
+-    return path !== "" && !path.startsWith("..");
++    const lexical = relative(baseDirectory, resolve(baseDirectory, specifier));
++    if (lexical === "" || lexical.startsWith("..")) {
++        return false;
++    }
++    try {
++        const realBase = realpathSync(baseDirectory);
++        const realTarget = realpathSync(resolve(baseDirectory, specifier));
++        const real = relative(realBase, realTarget);
++        return real !== "" && !real.startsWith("..");
++    } catch {
++        // Nothing on disk yet at this path; the lexical check already
++        // passed, so let the actual import attempt report what is wrong.
++        return true;
++    }
+ };
+ 
+ const classifySpecifier = function (specifier) {
+@@ -165,7 +184,7 @@ const classifySpecifier = function (specifier) {
+         return SPECIFIER_BTM;
+     }
+     if (specifier.startsWith("//")) {
+-        // No scheme, yet not local either. Browser and Node would treat 
++        // No scheme, yet not local either. Browser and Node would treat
+         // differently. Require explicit scheme or simplified relative path.
+         return SPECIFIER_PROTOCOL_RELATIVE;
+     }
+@@ -180,11 +199,25 @@ const classifySpecifier = function (specifier) {
+ };
+ 
+ // Remote source is written to disk and imported as a file rather than handed
+-// to import(). The .mjs extension is deliberate: it forces Node to parse the file 
++// to import(). The .mjs extension is deliberate: it forces Node to parse the file
+ // as an ES module so that import behaves like the browser would treat it.
++//
++// An approved host that stops responding must not hang the build silently;
++// a bounded wait fails loudly instead.
++const REMOTE_FETCH_TIMEOUT_MS = 30_000;
+ let remoteCount = 0;
+ const fetchRemoteModule = async function (url) {
+-    const response = await fetch(url);
++    let response;
++    try {
++        response = await fetch(url, { signal: AbortSignal.timeout(REMOTE_FETCH_TIMEOUT_MS) });
++    } catch (err) {
++        if (err.name === "TimeoutError") {
++            throw new Error(
++                `request for ${url} did not respond within ${REMOTE_FETCH_TIMEOUT_MS / 1000}s`
++            );
++        }
++        throw err;
++    }
+     if (!response.ok) {
+         throw new Error(`request for ${url} returned ${response.status} ${response.statusText}`);
+     }
+@@ -348,14 +381,14 @@ const failedExercise = function (identifier, expressions) {
+     return element;
+ };
+ 
+-// Name an exercise the way its author would look for it.  @visible-id is what
+-// the author wrote and can search for; the assembly id is what the
++// Name an exercise the way its author would look for it.  @unique-id is what
++// the author can search for, whether generated or based on label; the assembly id is what the
+ // substitutions file is keyed by and what other messages in the build use.
+ // Both are given when both exist, so neither the author nor anyone reading a
+ // log has to guess which identifier is being quoted.
+ const exerciseName = function (problem) {
+-    if (problem.exercise_visible_id) {
+-        return `"${problem.exercise_visible_id}" (assembly id: ${problem.exercise_id})`;
++    if (problem.exercise_unique_id) {
++        return `"${problem.exercise_unique_id}" (assembly id: ${problem.exercise_id})`;
+     }
+     return `(assembly id: ${problem.exercise_id})`;
+ };
+@@ -531,12 +564,12 @@ const preflightImports = function (exercises, allowed) {
+     if (offProject.size > 0) {
+         reportError(
+             "a dynamic exercise imports a library by a path that leads outside the\n" +
+-            "project.  A project-local library has to be one of the project's own\n" +
+-            "assets, so that it is copied into the external directory and served\n" +
+-            "alongside the book: that is the only way a reader's browser can load it.\n" +
++            "project.  A project-local library has to be kept within the project's\n" +
++            "own external directory, so that it is copied alongside the book and\n" +
++            "served with it: that is the only way a reader's browser can load it.\n" +
+             "A path reaching elsewhere on the machine building the book would work\n" +
+             "here and leave the exercise broken in HTML.  Move the library into the\n" +
+-            "project's assets and refer to it from there:\n" +
++            "project's external directory and refer to it from there:\n" +
+             "\n" +
+             listUsers(offProject) + "\n"
+         );
+diff --git a/xsl/extract-dynamic.xsl b/xsl/extract-dynamic.xsl
+index 064906d3..11a70040 100644
+--- a/xsl/extract-dynamic.xsl
++++ b/xsl/extract-dynamic.xsl
+@@ -87,7 +87,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+         <xsl:if test="position() > 1">
+             <xsl:text>, </xsl:text>
+         </xsl:if>
+-        <xsl:call-template name="quote-string">
++        <xsl:call-template name="escape-quote-string">
+             <xsl:with-param name="text" select="@url"/>
+         </xsl:call-template>
+     </xsl:for-each>
+@@ -118,13 +118,11 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+     <xsl:text>",&#xa;</xsl:text>
+     <!-- The @assembly-id above is what the substitution pass reads   -->
+     <!-- back, but it means nothing to an author.  Carry the          -->
+-    <!-- @visible-id alongside it purely so that a failure during     -->
++    <!-- @unique-id alongside it purely so that a failure during      -->
+     <!-- evaluation can name the exercise the way the author sees it. -->
+-    <xsl:text>  "exercise_visible_id": </xsl:text>
+-    <xsl:call-template name="quote-string">
+-        <xsl:with-param name="text" select="@visible-id"/>
+-    </xsl:call-template>
+-    <xsl:text>,&#xa;</xsl:text>
++    <xsl:text>  "exercise_unique_id": "</xsl:text>
++    <xsl:apply-templates select="." mode="unique-id"/>
++    <xsl:text>",&#xa;</xsl:text>
+     <!-- Packages and libraries this exercise's setup depends on.     -->
+     <!-- This mirrors the "dyn_imports" array of the HTML version,    -->
+     <!-- including its leading "BTM", which the substitution script   -->
+@@ -140,7 +138,7 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+         </xsl:variable>
+         <xsl:if test="string-length($import-path) > 0">
+             <xsl:text>, </xsl:text>
+-            <xsl:call-template name="quote-string">
++            <xsl:call-template name="escape-quote-string">
+                 <xsl:with-param name="text" select="$import-path"/>
+             </xsl:call-template>
+         </xsl:if>
+diff --git a/xsl/pretext-assembly.xsl b/xsl/pretext-assembly.xsl
+index da13dc2b..08104f41 100644
+--- a/xsl/pretext-assembly.xsl
++++ b/xsl/pretext-assembly.xsl
+@@ -1831,19 +1831,32 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+ <!-- text and no children; that text is used for either request.          -->
+ <xsl:template match="eval-subst" mode="dynamic-representation">
+     <xsl:param name="b-latex" select="false()"/>
++<!-- Each representation is independent: a request for one never looks -->
++<!-- at whether the other happens to be present.  A v1 substitution    -->
++<!-- carries both children together, or neither (the legacy case,      -->
++<!-- below), never just one, but the fallback is written per-child     -->
++<!-- regardless, since that is the contract, not an assumption about   -->
++<!-- which files exist.                                                -->
+     <xsl:choose>
+-        <xsl:when test="latex or plain">
++        <xsl:when test="$b-latex">
+             <xsl:choose>
+-                <xsl:when test="$b-latex">
++                <xsl:when test="latex">
+                     <xsl:value-of select="latex"/>
+                 </xsl:when>
+                 <xsl:otherwise>
+-                    <xsl:value-of select="plain"/>
++                    <xsl:value-of select="."/>
+                 </xsl:otherwise>
+             </xsl:choose>
+         </xsl:when>
+         <xsl:otherwise>
+-            <xsl:value-of select="."/>
++            <xsl:choose>
++                <xsl:when test="plain">
++                    <xsl:value-of select="plain"/>
++                </xsl:when>
++                <xsl:otherwise>
++                    <xsl:value-of select="."/>
++                </xsl:otherwise>
++            </xsl:choose>
+         </xsl:otherwise>
+     </xsl:choose>
+ </xsl:template>
+diff --git a/xsl/pretext-runestone-fitb.xsl b/xsl/pretext-runestone-fitb.xsl
+index 906e6610..b28f8653 100644
+--- a/xsl/pretext-runestone-fitb.xsl
++++ b/xsl/pretext-runestone-fitb.xsl
+@@ -83,7 +83,7 @@
+                             </xsl:when>
+                             <xsl:otherwise>
+                                 <!-- Report if a seed is not provided-->
+-                                <xsl:message>PTX:FALLBACK:   Dynamic exercise "<xsl:apply-templates select="." mode="visible-id" />" is missing setup @seed for static content generation.</xsl:message>
++                                <xsl:message>PTX:FALLBACK:   Dynamic exercise "<xsl:apply-templates select="." mode="unique-id" />" is missing setup @seed for static content generation.</xsl:message>
+                                 <xsl:text>1234</xsl:text>
+                             </xsl:otherwise>
+                         </xsl:choose>
+@@ -177,7 +177,7 @@
+ <xsl:template match="fillin" mode="declare-blanks">
+     <xsl:if test="not(@mode)">
+         <xsl:message>PTX:FALLBACK:   a "fillin" of interactive exercise "<xsl:apply-templates
+-            select="ancestor::statement[1]/parent::*" mode="visible-id"/>" has no @mode, so "string" will be used.  A response is then compared as plain text, and an @ansobj answer is rendered with its "toString" and not as mathematics.  Set @mode to "math", "number", or "string" to say which is wanted.</xsl:message>
++            select="ancestor::statement[1]/parent::*" mode="unique-id"/>" has no @mode, so "string" will be used.  A response is then compared as plain text, and an @ansobj answer is rendered with its "toString" and not as mathematics.  Set @mode to "math", "number", or "string" to say which is wanted.</xsl:message>
+     </xsl:if>
+     <xsl:variable name="blankNum">
+         <xsl:value-of select="position()" />
+@@ -196,33 +196,33 @@
+ 
+ <!-- Identify external javascript libraries, either as asset or by url -->
+ <xsl:template match="jslibrary" mode="js-import-path">
+-  <xsl:choose>
+-    <xsl:when test="@source">
+-      <xsl:value-of select="$external-directory"/>
+-      <xsl:value-of select="@source"/>
+-    </xsl:when>
+-    <xsl:when test="@url">
+-      <xsl:value-of select="@url"/>
+-    </xsl:when>
+-    <xsl:otherwise>
+-      <xsl:message>PTX:WARNING: a "jslibrary" element needs either a @source (project-local) or a @url (remote) attribute, and this one has neither, so it will be ignored.</xsl:message>
+-    </xsl:otherwise>
+-  </xsl:choose>
++    <xsl:choose>
++        <xsl:when test="@source">
++            <xsl:value-of select="$external-directory"/>
++            <xsl:value-of select="@source"/>
++        </xsl:when>
++        <xsl:when test="@url">
++            <xsl:value-of select="@url"/>
++        </xsl:when>
++        <xsl:otherwise>
++            <xsl:message>PTX:WARNING: a "jslibrary" element needs either a @source (project-local) or a @url (remote) attribute, and this one has neither, so it will be ignored.</xsl:message>
++        </xsl:otherwise>
++    </xsl:choose>
+ </xsl:template>
+ 
+ <!-- A "jslibrary" as an entry of the HTML "dyn_imports" array.  The -->
+ <!-- array always leads with "BTM", so every entry here is preceded  -->
+ <!-- by a comma.                                                     -->
+ <xsl:template match="jslibrary" mode="js-import">
+-  <xsl:variable name="import-path">
+-    <xsl:apply-templates select="." mode="js-import-path"/>
+-  </xsl:variable>
+-  <xsl:if test="string-length($import-path) > 0">
+-    <xsl:text>, </xsl:text>
+-    <xsl:call-template name="escape-quote-string">
+-      <xsl:with-param name="text" select="$import-path" />
+-    </xsl:call-template>
+-  </xsl:if>
++    <xsl:variable name="import-path">
++        <xsl:apply-templates select="." mode="js-import-path"/>
++    </xsl:variable>
++    <xsl:if test="string-length($import-path) > 0">
++        <xsl:text>, </xsl:text>
++        <xsl:call-template name="escape-quote-string">
++            <xsl:with-param name="text" select="$import-path"/>
++        </xsl:call-template>
++    </xsl:if>
+ </xsl:template>
+ 
+ <!-- #eval in a dynamic exercise (has setup) is to evaluate -->
+@@ -455,7 +455,7 @@
+ 
+     <!-- Defend against name mismatches -->
+     <xsl:if test="@name and $match-fillin/@name and not(@name = $match-fillin/@name)">
+-        <xsl:message>PTX:ERROR:    Dynamic content missing label "<xsl:apply-templates select="." mode="visible-id" />"</xsl:message>
++        <xsl:message>PTX:ERROR:    Dynamic content missing label "<xsl:apply-templates select="." mode="unique-id" />"</xsl:message>
+     </xsl:if>
+ 
+     <!-- First check is for correctness. -->
+@@ -505,12 +505,12 @@
+                             <xsl:text>);&#xa;}</xsl:text>
+                         </xsl:when>
+                         <xsl:otherwise>
+-                            <xsl:message>PTX:ERROR: fillin has an @ansobj with invalid or missing mode (valid: number|string|math) in "<xsl:apply-templates select="." mode="visible-id" />".</xsl:message>
++                            <xsl:message>PTX:ERROR: fillin has an @ansobj with invalid or missing mode (valid: number|string|math) in "<xsl:apply-templates select="." mode="unique-id" />".</xsl:message>
+                         </xsl:otherwise>
+                     </xsl:choose>
+                 </xsl:when>
+                 <xsl:otherwise>
+-                    <xsl:message>PTX:ERROR: No method provided to identify a correct answer for #fillin in "<xsl:apply-templates select="." mode="visible-id" />".</xsl:message>
++                    <xsl:message>PTX:ERROR: No method provided to identify a correct answer for #fillin in "<xsl:apply-templates select="." mode="unique-id" />".</xsl:message>
+                 </xsl:otherwise>
+             </xsl:choose>
+             <xsl:text>, "feedback": "</xsl:text>
+@@ -583,7 +583,7 @@
+         </xsl:when>
+         <!-- No check matches: Make blank default. -->
+         <xsl:otherwise>
+-            <xsl:message>PTX:ERROR: No matching #evaluate for #fillin in "<xsl:apply-templates select="." mode="visible-id" />".</xsl:message>
++            <xsl:message>PTX:ERROR: No matching #evaluate for #fillin in "<xsl:apply-templates select="." mode="unique-id" />".</xsl:message>
+         </xsl:otherwise>
+     </xsl:choose>
+ </xsl:template>
+@@ -940,7 +940,7 @@
+                 <xsl:when test="name($curTest)='mathcmp' and $curTest/@use-answer='yes'">
+                     <xsl:choose>
+                         <xsl:when test="not($fillin/@ansobj)">
+-                            <xsl:message>PTX:ERROR:   Feedback for "<xsl:apply-templates select="." mode="visible-id" />" says to use given math answer, but @ansobj not defined. </xsl:message>
++                            <xsl:message>PTX:ERROR:   Feedback for "<xsl:apply-templates select="." mode="unique-id" />" says to use given math answer, but @ansobj not defined. </xsl:message>
+                             <xsl:text>UNDEFINED</xsl:text>
+                         </xsl:when>
+                         <xsl:otherwise>
+@@ -990,7 +990,7 @@
+         </xsl:when>
+         <xsl:when test="$logic = 'not'"/>         <!-- Negation has no preparation -->
+         <xsl:otherwise>
+-            <xsl:message>PTX:ERROR:    Invalid logic operator in dynamic fillin for "<xsl:apply-templates select="." mode="visible-id" />"</xsl:message>
++            <xsl:message>PTX:ERROR:    Invalid logic operator in dynamic fillin for "<xsl:apply-templates select="." mode="unique-id" />"</xsl:message>
+         </xsl:otherwise>
+     </xsl:choose>
+     <xsl:for-each select="$tests">    <!-- Work through the layer of tests one at a time. -->
+diff --git a/xsl/pretext-text-utilities.xsl b/xsl/pretext-text-utilities.xsl
+index 7a1d906f..f8105dba 100644
+--- a/xsl/pretext-text-utilities.xsl
++++ b/xsl/pretext-text-utilities.xsl
+@@ -987,9 +987,9 @@ along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ <!-- First define the replacements. These must be in     -->
+ <!-- order as search + replace pairs                     -->
+-<!-- Other control characters replacements are not       -->
++<!-- Other control character replacements are not        -->
+ <!-- included because they would not be valid at an      -->
+-<!-- earlier stage -->
++<!-- earlier stage.                                      -->
+ <xsl:variable name="json-replacements">
+     <search>\</search>
+     <replace>\\</replace>
