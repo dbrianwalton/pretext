@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--********************************************************************
+Copyright 2026 Robert A. Beezer
+
+This file is part of PreTeXt.
+
+PreTeXt is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 or version 3 of the
+License (at your option).
+
+PreTeXt is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+*********************************************************************-->
+
+<!-- EVERY EXERCISE IN THIS FILE IS DELIBERATELY BROKEN.                 -->
+<!--                                                                    -->
+<!-- Its purpose is to make the diagnostics fire, so that they can be    -->
+<!-- checked for presence, wording and severity.  A build of this file   -->
+<!-- SHOULD be noisy; a silent build is the failure.  README.md lists    -->
+<!-- the messages each exercise is expected to produce.                  -->
+<!--                                                                    -->
+<!-- Kept apart from  main.ptx  so that the valid fixture stays quiet    -->
+<!-- and a stray message there is unmistakable.                          -->
+
+<pretext>
+    <article xml:id="fillin-diagnostics">
+        <title>Fill-In Blank Diagnostics</title>
+
+        <section xml:id="sec-diagnostics">
+            <title>Deliberately Broken Exercises</title>
+
+            <!-- WARNING: a name on an "evaluate" is a request for pairing   -->
+            <!-- by name, and there is no blank named "delta" to meet it.    -->
+            <!-- Position happens to land on the intended blank, so one      -->
+            <!-- edit fixes this and it is not an error.                     -->
+            <exercise xml:id="ex-evaluate-named-blank-not">
+                <title>Evaluate Named, Blank Not</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/> and
+                    <m>2</m> here <fillin mode="number" answer="2"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D1</p></feedback></test></evaluate>
+                    <evaluate name="delta"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D2</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- ERROR: two names, and they disagree.  Only the author knows -->
+            <!-- which of the two is the mistake.                            -->
+            <exercise xml:id="ex-names-disagree">
+                <title>Both Named, Names Disagree</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin name="aa" mode="number" answer="1"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate name="zz"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D3</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- ERROR, twice: the count check fires once for the exercise,  -->
+            <!-- then the third blank finds nothing to pair with.            -->
+            <exercise xml:id="ex-too-few-evaluate">
+                <title>Fewer Evaluates Than Blanks</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>,
+                    <m>2</m> here <fillin mode="number" answer="2"/>,
+                    and <m>3</m> here <fillin mode="number" answer="3"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D4</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D5</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- ERROR from the count check: the surplus evaluate is merely  -->
+            <!-- unused, but the correspondence is meant to be one-to-one.   -->
+            <exercise xml:id="ex-too-many-evaluate">
+                <title>More Evaluates Than Blanks</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D6</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D7</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- ERROR: one @name reused.  Left alone this would emit two    -->
+            <!-- feedback arrays for one blank and break the JSON.           -->
+            <exercise xml:id="ex-duplicate-name">
+                <title>One Name on Two Evaluates</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin name="dd" mode="number" answer="1"/> and
+                    <m>2</m> here <fillin mode="number" answer="2"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate name="dd"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D8</p></feedback></test></evaluate>
+                    <evaluate name="dd"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D9</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- WARNING from validation-plus: with a single blank the       -->
+            <!-- Runestone pass discards the global check, so this author    -->
+            <!-- has written a test that will never run.                     -->
+            <exercise xml:id="ex-all-single-blank">
+                <title>Global Check, Single Blank</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate all="yes">
+                        <test correct="yes">
+                            <jscmp><![CDATA[ans_array[0] == 1]]></jscmp>
+                            <feedback><p>FB-D10</p></feedback>
+                        </test>
+                    </evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D11</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- Inside the statement of a fill-in exercise there is no such -->
+            <!-- thing as a decorative blank: every "fillin" is answerable   -->
+            <!-- and must pair with an "evaluate".  A blank inside "m" can   -->
+            <!-- never manage that - the schema allows it only @fill or      -->
+            <!-- @characters, and there is no way to put an "input" inside   -->
+            <!-- MathJax-rendered mathematics - so validation-plus raises    -->
+            <!-- "fillin-in-mathematics" once for each.                      -->
+            <!--                                                             -->
+            <!-- The count ERROR and the two "No matching #evaluate" ERRORs  -->
+            <!-- that follow are correct as well, and the two @mode          -->
+            <!-- FALLBACKs are a knock-on: those blanks have no @mode        -->
+            <!-- because the schema does not permit one there.               -->
+            <!--                                                             -->
+            <!-- Despite all of that the feedbackArray MUST still parse as   -->
+            <!-- JSON: the unpaired blanks emit a placeholder entry rather   -->
+            <!-- than nothing.                                               -->
+            <exercise xml:id="ex-decorative-blank-counted">
+                <title>Blanks With No Evaluate, Inside Mathematics</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>.</p>
+                    <p>These blanks inside mathematics are decorative only:
+                    <m>\sin\left(<fillin fill="x"/>\right) = 0</m>
+                    and <m>x^{<fillin characters="3"/>} = x</m>.</p>
+                    <p>Enter <m>2</m> here <fillin mode="number" answer="2"/> and
+                    <m>3</m> here <fillin mode="number" answer="3"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D12</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D13</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-D14</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+        </section>
+    </article>
+</pretext>

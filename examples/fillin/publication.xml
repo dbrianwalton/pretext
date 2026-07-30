@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--********************************************************************
+Copyright 2026 Robert A. Beezer
+
+This file is part of PreTeXt.
+
+PreTeXt is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 or version 3 of the
+License (at your option).
+
+PreTeXt is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+*********************************************************************-->
+
+<!-- Publication file for the fill-in blank pairing fixture, serving     -->
+<!-- both  main.ptx  and  diagnostics.ptx.                               -->
+<!--                                                                     -->
+<!-- Deliberately minimal.  The point of this document is what the       -->
+<!-- stylesheets do with "fillin" and "evaluate", so anything that       -->
+<!-- would add noise to a diff of the output is left at its default.     -->
+<!--                                                                     -->
+<!-- The  ext  and  gen  directories named below must exist.  They are   -->
+<!-- kept in the repository, empty, for exactly that reason.             -->
+
+<publication>
+
+    <source>
+        <directories external="ext" generated="gen"/>
+    </source>
+
+    <common>
+        <!-- Exercises are the whole document, so put each one on the    -->
+        <!-- page rather than behind a knowl, where a build can be       -->
+        <!-- grepped in one pass.                                        -->
+        <fillin textstyle="underline" mathstyle="shade"/>
+    </common>
+
+    <html>
+        <knowl exercise-inline="no"/>
+    </html>
+
+</publication>

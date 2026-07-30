@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--********************************************************************
+Copyright 2026 Robert A. Beezer
+
+This file is part of PreTeXt.
+
+PreTeXt is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 or version 3 of the
+License (at your option).
+
+PreTeXt is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with PreTeXt.  If not, see <http://www.gnu.org/licenses/>.
+*********************************************************************-->
+
+<!-- Fill-in-the-blank pairing fixture.  Every exercise here is VALID   -->
+<!-- and a clean build emits no PTX:ERROR and no PTX:WARNING.  The      -->
+<!-- deliberately broken counterparts live in  diagnostics.ptx.         -->
+<!--                                                                    -->
+<!-- Feedback text is the literal string  FB-...  so that it can be     -->
+<!-- grepped out of HTML, JSON, and LaTeX and compared by eye or by     -->
+<!-- diff.  See README.md for the expected output of each exercise.     -->
+
+<pretext>
+    <article xml:id="fillin-pairing">
+        <title>Fill-In Blank Pairing</title>
+
+        <section xml:id="sec-order">
+            <title>Blank Ordering</title>
+
+            <p>The blanks of an exercise are numbered in document order, however
+            deeply they are nested.  Numbering is the basis of positional pairing
+            with <tag>evaluate</tag>, of the synthetic <c>blankN</c> names, and of
+            the <c>id</c> on each generated <c>input</c> element.</p>
+
+            <!-- Eight blanks, in two paragraphs, each with a trailing list.  -->
+            <!-- Two levels of nesting and two sibling subtrees: enough to    -->
+            <!-- separate document order from any node-list position.  Expect -->
+            <!-- blank1 ... blank8 and FB-1 ... FB-8, in that order.          -->
+            <exercise xml:id="ex-nested-unnamed">
+                <title>Eight Unnamed Blanks, Nested</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/> and
+                    <m>2</m> here <fillin mode="number" answer="2"/>.
+                    <ul>
+                        <li><p>Enter <m>3</m> here <fillin mode="number" answer="3"/>.</p></li>
+                        <li><p>Enter <m>4</m> here <fillin mode="number" answer="4"/>.</p></li>
+                    </ul>
+                    </p>
+                    <p>Enter <m>5</m> here <fillin mode="number" answer="5"/> and
+                    <m>6</m> here <fillin mode="number" answer="6"/>.
+                    <ul>
+                        <li><p>Enter <m>7</m> here <fillin mode="number" answer="7"/>.</p></li>
+                        <li><p>Enter <m>8</m> here <fillin mode="number" answer="8"/>.</p></li>
+                    </ul>
+                    </p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-1</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-2</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-3</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-4</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-5</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-6</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-7</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-8</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- A blank as the very first thing in the statement, and one   -->
+            <!-- as the very last.  Numbering must not depend on the blank   -->
+            <!-- having text on either side of it.                           -->
+            <!--                                                             -->
+            <!-- NB: an answerable blank is not permitted inside "m" - the   -->
+            <!-- schema allows only "characters" and "fill" there, which are -->
+            <!-- decorative.  For what happens when a decorative blank does  -->
+            <!-- appear in a fill-in statement, see  diagnostics.ptx .       -->
+            <exercise xml:id="ex-blank-edges">
+                <title>Blanks at the Edges of a Statement</title>
+                <statement>
+                    <p><fillin mode="number" answer="1"/> is the first blank, with
+                    nothing before it.</p>
+                    <p>Enter <m>2</m> here <fillin mode="number" answer="2"/> and
+                    then <m>3</m> here, ending the statement<fillin mode="number" answer="3"/></p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-M1</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-M2</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-M3</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+        </section>
+
+        <section xml:id="sec-pairing">
+            <title>Pairing Blanks with Evaluates</title>
+
+            <p>An <tag>evaluate</tag> carrying a <attr>name</attr> pairs with the
+            <tag>fillin</tag> of the same name, wherever either one sits.  Every
+            other <tag>evaluate</tag> pairs by position.  An
+            <tag>evaluate</tag> with <attr>all</attr> set to <c>yes</c> applies to
+            the exercise as a whole and takes no positional slot; every other
+            <tag>evaluate</tag> does take one, named or not.</p>
+
+            <!-- Names must beat position.  The evaluates are written in the -->
+            <!-- reverse of the blanks, so any positional fallback shows up  -->
+            <!-- immediately as swapped feedback.                            -->
+            <exercise xml:id="ex-names-reversed">
+                <title>Named Blanks, Evaluates Reversed</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin name="alpha" mode="number" answer="1"/>
+                    and <m>2</m> here <fillin name="beta" mode="number" answer="2"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate name="beta"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-BETA</p></feedback></test></evaluate>
+                    <evaluate name="alpha"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-ALPHA</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- One named pair in the middle of unnamed ones.  The named    -->
+            <!-- evaluate still occupies its positional slot, so the blanks  -->
+            <!-- on either side of it are unaffected.                        -->
+            <exercise xml:id="ex-mixed-names">
+                <title>One Named Pair Among Unnamed</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>,
+                    <m>2</m> here <fillin name="middle" mode="number" answer="2"/>,
+                    and <m>3</m> here <fillin mode="number" answer="3"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-X1</p></feedback></test></evaluate>
+                    <evaluate name="middle"><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-X2</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-X3</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- The all="yes" evaluate is written FIRST, which is the       -->
+            <!-- ordering that used to shift every positional pairing by one -->
+            <!-- in both the assembly pass and the static solution.          -->
+            <exercise xml:id="ex-all-first">
+                <title>Global Check Written First</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/> and
+                    <m>2</m> here <fillin mode="number" answer="2"/>.</p>
+                </statement>
+                <evaluation answers-coupled="yes">
+                    <evaluate all="yes">
+                        <test correct="yes">
+                            <jscmp><![CDATA[ans_array[0] == 1 && ans_array[1] == 2]]></jscmp>
+                            <feedback><p>FB-ALL</p></feedback>
+                        </test>
+                    </evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-ONE</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-TWO</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+            <!-- The same, with all="yes" written LAST, to confirm that the  -->
+            <!-- author's placement of it makes no difference at all.        -->
+            <exercise xml:id="ex-all-last">
+                <title>Global Check Written Last</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/> and
+                    <m>2</m> here <fillin mode="number" answer="2"/>.</p>
+                </statement>
+                <evaluation answers-coupled="yes">
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-ONE</p></feedback></test></evaluate>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-TWO</p></feedback></test></evaluate>
+                    <evaluate all="yes">
+                        <test correct="yes">
+                            <jscmp><![CDATA[ans_array[0] == 1 && ans_array[1] == 2]]></jscmp>
+                            <feedback><p>FB-ALL</p></feedback>
+                        </test>
+                    </evaluate>
+                </evaluation>
+            </exercise>
+
+        </section>
+
+        <section xml:id="sec-placement">
+            <title>Placement of Setup and Evaluation</title>
+
+            <p>Neither <tag>setup</tag> nor <tag>evaluation</tag> renders where it
+            sits, so the schema lets an author put them anywhere among the
+            children of the exercise.  What the schema does fix is that the
+            <tag>statement</tag> precedes every <tag>hint</tag>,
+            <tag>answer</tag> and <tag>solution</tag>.</p>
+
+            <!-- evaluation ahead of the statement -->
+            <exercise xml:id="ex-evaluation-first">
+                <title>Evaluation Before Statement</title>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-P1</p></feedback></test></evaluate>
+                </evaluation>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>.</p>
+                </statement>
+                <hint><p>It is <m>1</m>.</p></hint>
+            </exercise>
+
+            <!-- evaluation trailing an authored solution -->
+            <exercise xml:id="ex-evaluation-last">
+                <title>Evaluation After Solution</title>
+                <statement>
+                    <p>Enter <m>1</m> here <fillin mode="number" answer="1"/>.</p>
+                </statement>
+                <solution><p>An authored solution, kept alongside the generated one.</p></solution>
+                <evaluation>
+                    <evaluate><test correct="yes"><numcmp use-answer="yes"/><feedback><p>FB-P2</p></feedback></test></evaluate>
+                </evaluation>
+            </exercise>
+
+        </section>
+
+        <section xml:id="sec-tests">
+            <title>Evaluates Without a Correct Test</title>
+
+            <p>An <tag>evaluate</tag> is required for every blank, but the test
+            inside it is not.  The correct test may be synthesized from the
+            blank's <attr>answer</attr> during assembly, built at render time from
+            <attr>ansobj</attr>, or simply absent, leaving only feedback for wrong
+            responses.</p>
+
+            <!-- No test at all: assembly synthesizes the correct test from  -->
+            <!-- @answer on the paired blank.  The bare <evaluate/> in the   -->
+            <!-- middle exercises the FITBTest* multiplicity.                -->
+            <exercise xml:id="ex-implicit-tests">
+                <title>Implicit Correct Tests</title>
+                <statement>
+                    <p>Enter <c>int</c> here <fillin mode="string" answer="int"/>,
+                    <m>5</m> here <fillin mode="number" answer="5"/>,
+                    and <c>done</c> here <fillin mode="string" answer="done"/>.</p>
+                </statement>
+                <evaluation>
+                    <evaluate>
+                        <test><strcmp>.*</strcmp><feedback><p>FB-T1</p></feedback></test>
+                    </evaluate>
+                    <evaluate/>
+                    <evaluate>
+                        <test><strcmp>.*</strcmp><feedback><p>FB-T3</p></feedback></test>
+                    </evaluate>
+                </evaluation>
+            </exercise>
+
+        </section>
+
+    </article>
+</pretext>
